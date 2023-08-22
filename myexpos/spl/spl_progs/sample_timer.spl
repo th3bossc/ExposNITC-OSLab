@@ -1,0 +1,10 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP; //store sp to word 13 of process table
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11] * 512 - 1; //load sp from word 11 of process table (i.e. kernel stack)
+
+backup; //save registers to kernel stack
+
+// print "TIMER";
+print [SYSTEM_STATUS_TABLE+1];
+restore; //restore registers from kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13]; //load sp from word 13 of process table
+ireturn;
