@@ -22,8 +22,8 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 6 - [Running a user program](https://exposnitc.github.io/expos-docs/roadmap/stage-06/)
 - Stage 7 - [ABI and XEXE format](https://exposnitc.github.io/expos-docs/roadmap/stage-07/)
 - Stage 8 - [Handling timer interrupt](https://exposnitc.github.io/expos-docs/roadmap/stage-08/)
-- Stage 9 - [Handling kernel stack](https://exposnitc.github.io/expos-docs/roadmap/stage-09/) - *currently completed*
-- Stage 10 - [Console output](https://exposnitc.github.io/expos-docs/roadmap/stage-10/)
+- Stage 9 - [Handling kernel stack](https://exposnitc.github.io/expos-docs/roadmap/stage-09/)
+- Stage 10 - [Console output](https://exposnitc.github.io/expos-docs/roadmap/stage-10/) - *currently completed*
 - Stage 11 - [Introduction to ExpL](https://exposnitc.github.io/expos-docs/roadmap/stage-11/)
 - Stage 12 - [Introduction to multiprogramming](https://exposnitc.github.io/expos-docs/roadmap/stage-12/)
 
