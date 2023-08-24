@@ -1,0 +1,46 @@
+decl 
+    int factorial(int n);
+    int factorialRecursion(int n);
+enddecl 
+
+int factorial(int n) {
+    decl
+        int i, answer;
+    enddecl
+    begin
+        i = 1;
+        answer = 1;
+        while (i <= n) do
+            answer = answer*i;
+            i = i + 1;
+        endwhile;
+        return answer;
+    end
+}
+
+int factorialRecursion(int n) {
+    decl
+        int answer;
+    enddecl
+    begin
+        if (n == 0) then
+            answer = 1;
+        else
+            answer = n * factorialRecursion(n-1);
+        endif;
+        return answer;
+    end
+}
+
+int main() {
+    decl    
+        int num, temp, answer;
+    enddecl
+
+    begin   
+        num = 10;
+        answer = factorialRecursion(num);
+        temp = exposcall("Write", -2, answer);
+        return 0;
+    end
+}
