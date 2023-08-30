@@ -24,8 +24,8 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 8 - [Handling timer interrupt](https://exposnitc.github.io/expos-docs/roadmap/stage-08/)
 - Stage 9 - [Handling kernel stack](https://exposnitc.github.io/expos-docs/roadmap/stage-09/)
 - Stage 10 - [Console output](https://exposnitc.github.io/expos-docs/roadmap/stage-10/)
-- Stage 11 - [Introduction to ExpL](https://exposnitc.github.io/expos-docs/roadmap/stage-11/) - *currently completed*
-- Stage 12 - [Introduction to multiprogramming](https://exposnitc.github.io/expos-docs/roadmap/stage-12/)
+- Stage 11 - [Introduction to ExpL](https://exposnitc.github.io/expos-docs/roadmap/stage-11/)
+- Stage 12 - [Introduction to multiprogramming](https://exposnitc.github.io/expos-docs/roadmap/stage-12/) - *currently completed*
 
 ### Intermediate stages
 - Stage 13 - [Boot module](https://exposnitc.github.io/expos-docs/roadmap/stage-13/)

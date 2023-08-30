@@ -26,8 +26,16 @@ loadi(17, 30);
 loadi(22, 35);
 loadi(23, 36);
 
+//load boot module 
+loadi(54, 67);
+loadi(55, 68);
+
+SP = 82*512 - 1;
+
+call BOOT_MODULE;
+
 PTBR = PAGE_TABLE_BASE; //page table base register
-PTLR = 20; //10 pages each for IDLE and INIT process
+PTLR = 10; //10 pages each for IDLE and INIT process
 
 
 // IDLE process
@@ -61,60 +69,15 @@ PTLR = 20; //10 pages each for IDLE and INIT process
 [PTBR+19] = "0000";
 
 [81*512] = [69*512 + 1];
-
-//////////////////
-
-
-PTBR = PAGE_TABLE_BASE + 20;
-PTLR = 10;
-//library
-[PTBR+0] = 63;
-[PTBR+1] = "0100"; 
-[PTBR+2] = 64;
-[PTBR+3] = "0100";
-
-//heap
-[PTBR+4] = 78;
-[PTBR+5] = "0110";
-[PTBR+6] = 79;
-[PTBR+7] = "0110";
-
-
-//code for INIT process
-[PTBR+8] = 65;
-[PTBR+9] = "0100";
-[PTBR+10] = 66;
-[PTBR+11] = "0100";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
-
-//stack
-[PTBR+16] = 76;
-[PTBR+17] = "0110";
-[PTBR+18] = 77;
-[PTBR+19] = "0110";
-
-[76*512] = [65*512 + 1]; 
-SP = 8*512; 
+SP = 8*512;
 
 [PROCESS_TABLE + 1] = 0; //process id of IDLE is 0
-[PROCESS_TABLE + 4] = CREATED;
+[PROCESS_TABLE + 4] = RUNNING;
 [PROCESS_TABLE + 11] = 82; //first available free page is 80 (0 - 79 are system reserved)
 [PROCESS_TABLE + 12] = 0;
 [PROCESS_TABLE + 13] = 8*512;
 [PROCESS_TABLE + 14] = PAGE_TABLE_BASE;
 [PROCESS_TABLE + 15] = 10;
 
-
-[PROCESS_TABLE + 16 + 1] = 1; //process id of INIT is 1
-[PROCESS_TABLE + 16 + 4] = RUNNING;
-[PROCESS_TABLE + 16 + 11] = 80; //first available free page is 80 (0 - 79 are system reserved)
-[PROCESS_TABLE + 16 + 12] = 0;
-[PROCESS_TABLE + 16 + 13] = 8*512;
-[PROCESS_TABLE + 16 + 14] = PAGE_TABLE_BASE + 20;
-[PROCESS_TABLE + 16 + 15] = 10;
-
-[SYSTEM_STATUS_TABLE + 1] = 1; //process id is of INIT is 1
+[SYSTEM_STATUS_TABLE + 1] = 0; //from stage 12 on we start with the idle process
 ireturn;
