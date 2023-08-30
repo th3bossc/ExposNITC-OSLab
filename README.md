@@ -25,10 +25,10 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 9 - [Handling kernel stack](https://exposnitc.github.io/expos-docs/roadmap/stage-09/)
 - Stage 10 - [Console output](https://exposnitc.github.io/expos-docs/roadmap/stage-10/)
 - Stage 11 - [Introduction to ExpL](https://exposnitc.github.io/expos-docs/roadmap/stage-11/)
-- Stage 12 - [Introduction to multiprogramming](https://exposnitc.github.io/expos-docs/roadmap/stage-12/) - *currently completed*
+- Stage 12 - [Introduction to multiprogramming](https://exposnitc.github.io/expos-docs/roadmap/stage-12/)
 
 ### Intermediate stages
-- Stage 13 - [Boot module](https://exposnitc.github.io/expos-docs/roadmap/stage-13/)
+- Stage 13 - [Boot module](https://exposnitc.github.io/expos-docs/roadmap/stage-13/) - *currently completed*
 - Stage 14 - [Round robin scheduler](https://exposnitc.github.io/expos-docs/roadmap/stage-14/)
 - Stage 15 - [Resource manager module](https://exposnitc.github.io/expos-docs/roadmap/stage-15/)
 - Stage 16 - [Console input](https://exposnitc.github.io/expos-docs/roadmap/stage-16/)
