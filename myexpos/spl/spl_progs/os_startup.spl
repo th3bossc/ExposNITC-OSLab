@@ -30,7 +30,6 @@ loadi(23, 36);
 loadi(54, 67);
 loadi(55, 68);
 
-SP = 82*512 - 1;
 
 call BOOT_MODULE;
 
@@ -80,4 +79,5 @@ SP = 8*512;
 [PROCESS_TABLE + 15] = 10;
 
 [SYSTEM_STATUS_TABLE + 1] = 0; //from stage 12 on we start with the idle process
+
 ireturn;
