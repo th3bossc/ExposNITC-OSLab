@@ -1,0 +1,17 @@
+alias functionNumber R1;
+alias currentPID R2;
+alias wordToPrint R3;
+if (functionNumber == 3) then 
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    print wordToPrint;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 9;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+endif;
+return;
