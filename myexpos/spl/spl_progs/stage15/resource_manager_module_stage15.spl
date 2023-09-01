@@ -10,6 +10,7 @@ if (functionNumber == 8) then
     endwhile;
     [TERMINAL_STATUS_TABLE+1] = currentPID;
     [TERMINAL_STATUS_TABLE+0] = 1;
+    breakpoint;
     return;
 endif;
 
@@ -25,9 +26,11 @@ if (functionNumber == 9) then
             i = i + 1;
         endwhile;
         R0 = 0;
+        breakpoint;
         return;
     else
         R0 = -1;
+        breakpoint;
         return;
     endif;
 
