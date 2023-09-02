@@ -1,0 +1,37 @@
+alias functionNumber R1;
+alias currentPID R2;
+alias word R3;
+
+if (functionNumber == 3) then 
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    print word;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 9;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+endif;
+
+if (functionNumber == 4) then
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    breakpoint;
+    read;
+    breakpoint;
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+    
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
+
+    alias physicalAddress R4;
+    physicalAddress = [PTBR + 2 * ((word)/512)] * 512 + (word)%512;
+    [physicalAddress] = [PROCESS_TABLE + (currentPID*16) + 8];
+endif;
+return;

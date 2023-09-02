@@ -1,36 +1,18 @@
-//code files
-loadi(65, 7);
-loadi(66, 8);
-
 //IDLE processs 
 loadi(69, 11);
 loadi(70, 12);
-
-//library module
-loadi(63, 13);
-loadi(64, 14);
-
-//exception handler module
-loadi(2, 15);
-loadi(3, 16);
-
-//timer interrupt module
-loadi(4, 17);
-loadi(5, 18);
-
-//int7 module
-loadi(16, 29);
-loadi(17, 30);
-
-//int 10 module
-loadi(22, 35);
-loadi(23, 36);
 
 //load boot module 
 loadi(54, 67);
 loadi(55, 68);
 
 
+
+//load scheduler
+loadi(50,63);
+loadi(51,64);
+
+SP = 82*512 - 1;
 call BOOT_MODULE;
 
 PTBR = PAGE_TABLE_BASE; //page table base register
@@ -40,10 +22,10 @@ PTLR = 10; //10 pages each for IDLE and INIT process
 // IDLE process
 
 //library
-[PTBR+0] = 63;
-[PTBR+1] = "0100"; 
-[PTBR+2] = 64;
-[PTBR+3] = "0100";
+[PTBR+0] = -1;
+[PTBR+1] = "0000"; 
+[PTBR+2] = -1;
+[PTBR+3] = "0000";
 
 //heap
 [PTBR+4] = -1;
