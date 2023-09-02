@@ -14,7 +14,6 @@ loadi(51,64);
 
 SP = 82*512 - 1;
 call BOOT_MODULE;
-
 PTBR = PAGE_TABLE_BASE; //page table base register
 PTLR = 10; //10 pages each for IDLE and INIT process
 

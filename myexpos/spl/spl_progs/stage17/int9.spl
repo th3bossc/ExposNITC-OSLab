@@ -1,0 +1,99 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 9;
+
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+alias fileName R1;
+fileName = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+alias counter R2;
+counter = 0;
+while (counter < MAX_FILE_NUM && [INODE_TABLE + (counter*16) + 1] != fileName) do
+    counter = counter + 1;  
+endwhile;
+
+if (counter == MAX_FILE_NUM || [INODE_TABLE + (counter*16) + 0] != EXEC) then
+    alias retAddress R3;
+    retAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+    [retAddress] = -1;
+else
+    multipush(R0, R1, R2, R3);
+    R1 = 3; //functionNumber for EXIT_PROCESS 
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    call PROCESS_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    alias userPageNum R4;
+    userPageNum = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11];
+    [MEMORY_FREE_LIST + userPageNum] = [MEMORY_FREE_LIST + userPageNum] + 1;
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+    
+    SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = RUNNING;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 7] = counter;
+    
+    PTBR = PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20;
+    //library
+    [PTBR + 0] = 63;
+    [PTBR + 1] = "0100";
+    [PTBR + 2] = 64;
+    [PTBR + 3] = "0100";
+    
+    
+    //2 pages for heap
+    multipush(R0, R1, R2, R3, R4);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 4] = R0;
+    [PTBR + 5] = "0110";
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 6] = R0;
+    [PTBR + 7] = "0110";
+    multipop(R0, R1, R2, R3, R4);
+    
+    R5 = 8;
+    R6 = 8;
+    while (R5 < 12) do
+        if ([INODE_TABLE + counter*16 + R5] != -1) then
+            multipush(R1, R2, R3, R4, R5, R6);
+            R1 = 1;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6);
+            loadi(R0, [INODE_TABLE + counter*16 + R5]);
+            [PTBR + R6] = R0;
+            [PTBR + R6 + 1] = "0100";
+        else
+            [PTBR + R6] = -1;
+            [PTBR + R6 + 1] = "0000";
+        endif;
+        R5 = R5 + 1;
+        R6 = R6 + 2;
+    endwhile;
+    
+    //2 pages for stack
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 16] = R0;
+    [PTBR + 17] = "0110";
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [PTBR + 18] = R0;
+    [PTBR + 19] = "0110";
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+    
+    [[PTBR + 16]*512] = [[PTBR + 8]*512 + 1];
+    SP = 8*512;
+    alias retAddress R3;
+    retAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    [retAddress] = 0;
+endif;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+breakpoint;
+ireturn;
