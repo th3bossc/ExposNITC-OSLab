@@ -15,4 +15,6 @@ load --int=10 $OSLAB/myexpos/spl/spl_progs/haltprog.xsm
 load --exhandler $OSLAB/myexpos/spl/spl_progs/halt.xsm 
 load --idle $OSLAB/myexpos/expl/samples/idleProcess.xsm 
 load --init $OSLAB/myexpos/expl/samples/runProg.xsm
+load --exec $OSLAB/myexpos/expl/samples/even.xsm
 load --exec $OSLAB/myexpos/expl/samples/odd.xsm
+load --exec $OSLAB/myexpos/expl/samples/primes.xsm

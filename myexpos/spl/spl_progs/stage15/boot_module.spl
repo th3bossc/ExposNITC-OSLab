@@ -76,8 +76,7 @@ PTLR = 10;
 [PTBR+18] = 77;
 [PTBR+19] = "0110";
 
-[76*512] = [65*512 + 1]; 
-SP = 8*512; 
+[76*512] = [65*512 + 1];
 
 [PROCESS_TABLE + 16 + 1] = 1; //process id of INIT is 1
 [PROCESS_TABLE + 16 + 4] = CREATED;
