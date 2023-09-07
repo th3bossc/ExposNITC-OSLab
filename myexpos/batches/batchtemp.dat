@@ -1,7 +1,5 @@
 load --os $OSLAB/myexpos/spl/spl_progs/os_startup.xsm
 load --library $OSLAB/myexpos/expl/library.lib
-load --module 0 $OSLAB/myexpos/spl/spl_progs/stage15/resource_manager.xsm
-load --module 4 $OSLAB/myexpos/spl/spl_progs/stage15/device_manager.xsm
 load --module 5 $OSLAB/myexpos/spl/spl_progs/stage14/scheduler.xsm
 load --module 7 $OSLAB/myexpos/spl/spl_progs/stage15/boot_module.xsm
 load --int=timer $OSLAB/myexpos/spl/spl_progs/stage16/timer.xsm

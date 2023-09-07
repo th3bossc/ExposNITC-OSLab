@@ -1,0 +1,45 @@
+alias functionNumber R1;
+alias currentPID R2;
+
+if (functionNumber == 3) then
+    breakpoint;
+    while ([DISK_STATUS_TABLE+0] == 1) do
+        [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);
+    endwhile;
+    [DISK_STATUS_TABLE + 0] = 1;
+    [DISK_STATUS_TABLE + 4] = currentPID;
+endif;
+
+
+if (functionNumber == 8) then
+    while ([TERMINAL_STATUS_TABLE+0] == 1) do
+        [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);    
+    endwhile;
+    [TERMINAL_STATUS_TABLE+1] = currentPID;
+    [TERMINAL_STATUS_TABLE+0] = 1;
+endif;
+
+if (functionNumber == 9) then
+    if ([TERMINAL_STATUS_TABLE+1] == currentPID) then
+        [TERMINAL_STATUS_TABLE+0] = 0;
+        alias i R4;
+        i = 1;
+        while (i < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + (i*16) + 4] == WAIT_TERMINAL) then
+                [PROCESS_TABLE + (i*16) + 4] = READY;
+            endif;
+            i = i + 1;
+        endwhile;
+        R0 = 0;
+    else
+        R0 = -1;
+    endif;
+endif;
+
+return;
