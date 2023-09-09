@@ -1,0 +1,21 @@
+load --os $OSLAB/myexpos/spl/spl_progs/os_startup.xsm
+load --library $OSLAB/myexpos/expl/library.lib
+load --module 0 $OSLAB/myexpos/spl/spl_progs/stage18/resource_manager.xsm
+load --module 1 $OSLAB/myexpos/spl/spl_progs/stage19/process_manager.xsm
+load --module 2 $OSLAB/myexpos/spl/spl_progs/stage19/memory_manager.xsm
+load --module 4 $OSLAB/myexpos/spl/spl_progs/stage18/device_manager.xsm
+load --module 5 $OSLAB/myexpos/spl/spl_progs/stage16/scheduler.xsm
+load --module 7 $OSLAB/myexpos/spl/spl_progs/stage19/boot_module.xsm
+load --int=timer $OSLAB/myexpos/spl/spl_progs/stage16/timer.xsm
+load --int=console $OSLAB/myexpos/spl/spl_progs/stage16/console_interrupt.xsm
+load --int=disk $OSLAB/myexpos/spl/spl_progs/stage18/disk_interrupt.xsm
+load --int=6 $OSLAB/myexpos/spl/spl_progs/stage16/int6.xsm
+load --int=7 $OSLAB/myexpos/spl/spl_progs/stage15/int7.xsm
+load --int=9 $OSLAB/myexpos/spl/spl_progs/stage19/int9.xsm
+load --int=10 $OSLAB/myexpos/spl/spl_progs/haltprog.xsm
+load --exhandler $OSLAB/myexpos/spl/spl_progs/stage19/exception_handler.xsm 
+load --idle $OSLAB/myexpos/expl/samples/idleProcess.xsm 
+load --init $OSLAB/myexpos/expl/samples/runProg.xsm
+load --exec $OSLAB/myexpos/expl/samples/even.xsm
+load --exec $OSLAB/myexpos/expl/samples/odd.xsm
+load --exec $OSLAB/myexpos/expl/samples/LList.xsm

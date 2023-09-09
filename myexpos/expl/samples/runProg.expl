@@ -6,6 +6,7 @@ int main() {
     begin
         temp = exposcall("Read", -1, fileName);
         temp = exposcall("Exec", fileName);
+        temp = exposcall("Write", -2, "fileNotFound");
         return 0;
     end
 }

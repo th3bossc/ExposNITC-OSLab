@@ -33,8 +33,8 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 15 - [Resource manager module](https://exposnitc.github.io/expos-docs/roadmap/stage-15/)
 - Stage 16 - [Console input](https://exposnitc.github.io/expos-docs/roadmap/stage-16/)
 - Stage 17 - [Program loader](https://exposnitc.github.io/expos-docs/roadmap/stage-17/)
-- Stage 18 - [Disk interrup handler](https://exposnitc.github.io/expos-docs/roadmap/stage-18/) - *currently completed*
-- Stage 19 - [Exception handler](https://exposnitc.github.io/expos-docs/roadmap/stage-19/)
+- Stage 18 - [Disk interrup handler](https://exposnitc.github.io/expos-docs/roadmap/stage-18/)
+- Stage 19 - [Exception handler](https://exposnitc.github.io/expos-docs/roadmap/stage-19/) - *currently completed*
 
 ### Final stages
 - Stage 20 - [Process creation and termination](https://exposnitc.github.io/expos-docs/roadmap/stage-20/)

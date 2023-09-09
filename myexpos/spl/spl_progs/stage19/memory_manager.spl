@@ -1,0 +1,102 @@
+//module 2
+alias functionNumber R1;
+
+if (functionNumber == 1) then
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = WAIT_MEM;
+        call SCHEDULER;
+    endwhile;
+    
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+    alias counter R2;
+    counter = 80;
+    
+    while (counter < NUM_MEM_PAGES && [MEMORY_FREE_LIST + counter] != 0) do
+        counter = counter+1;
+    endwhile;
+    [MEMORY_FREE_LIST + counter] = 1;
+    breakpoint;
+    R0 = counter;
+endif;
+
+if (functionNumber == 2) then
+    alias pageNum R2;
+    [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;
+    
+    if ([MEMORY_FREE_LIST + pageNum] == 0) then 
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+
+    alias counter R3; 
+    counter = 1;
+    while (counter < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + counter*16 + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + counter*16 + 4] = READY;
+        endif;
+        counter = counter + 1;
+    endwhile;
+    breakpoint;
+endif;
+
+if (functionNumber == 4) then
+    alias blockNumber R2;
+    [DISK_FREE_LIST + blockNumber] = 0;
+endif;
+
+
+
+if (functionNumber == 5) then 
+    alias blockNumber R2;
+    alias currentPID R3;
+    
+    alias process R5;
+    alias counter R4;
+    alias flag R6;
+    process = 1;
+    flag = 0;
+    while (process < MAX_PROC_NUM) do
+        counter = 4;
+        while (counter < 8) do
+            if ([DISK_MAP_TABLE + process*10 + counter] == blockNumber && [[PROCESS_TABLE + process*16 + 14] + 8 + (counter - 4)*2] != -1) then
+                flag = 1;
+                break;
+            endif;
+            counter = counter + 1;
+        endwhile;
+        if (flag == 1) then
+            break;
+        endif;
+        process = process + 1;
+    endwhile;
+    alias targetPage R7;
+    targetPage = [PROCESS_TABLE + process*16 + 14] + 8 + (counter - 4)*2;
+    if (flag == 1 && ([targetPage + 1] == "0100" || [targetPage + 1] == "0110" || [targetPage + 1] == "1110")) then 
+        alias memoryPage R6;
+        memoryPage = [targetPage]; // [PTBR + pageNum]
+        [MEMORY_FREE_LIST + memoryPage] = [MEMORY_FREE_LIST + memoryPage] + 1;
+
+        R0 = memoryPage;
+    else
+        alias memoryPage R6;
+        multipush(R0, R1, R2, R3, R4, R5);
+        functionNumber = 1;
+        call MEMORY_MANAGER;
+        memoryPage = R0;
+        multipop(R0, R1, R2, R3, R4, R5);
+
+        multipush(R0, R1, R2, R3, R4, R5, R6);
+        functionNumber = 2;
+        R4 = blockNumber;
+        R2 = currentPID;
+        R3 = memoryPage;
+        call DEVICE_MANAGER;
+        multipop(R0, R1, R2, R3, R4, R5, R6);
+
+        R0 = memoryPage;
+    endif;
+endif;
+
+
+return;
