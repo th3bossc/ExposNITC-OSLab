@@ -8,7 +8,7 @@ This repo contains the project files of my 5th sem lab elective
     - [Intermediate Stages](#intermediate-stages)
     - [Final Stages](#final-stages)
 - [Useful Resources](#useful-resources)
-- [Author](#author)
+- [Done by](#done-by)
 
 
 ## Overview
@@ -51,5 +51,5 @@ This repo contains the project files of my 5th sem lab elective
 ## Useful resources
 - Documentation - [ExposNITC](https://exposnitc.github.io/expos-docs/)  
 
-## Author
+## Done by
 - Portfolio - [Diljith P D](https://th3bossc.github.io/Portfolio)
