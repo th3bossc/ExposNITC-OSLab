@@ -16,6 +16,6 @@ load --int=9 ../spl/spl_progs/stage19/int9.xsm
 load --int=10 ../spl/spl_progs/stage20/int10.xsm
 load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
 load --idle ../expl/samples/idleProcess.xsm 
-load --init ../expl/samples/fork.xsm
+load --init ../expl/samples/LListMod.xsm
 load --exec ../expl/samples/even.xsm
 load --exec ../expl/samples/odd.xsm
