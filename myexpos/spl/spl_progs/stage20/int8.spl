@@ -24,11 +24,11 @@ else
         R1 = 1;
         call MEMORY_MANAGER;
         [PTBR + 4] = R0;
-        [PTBR + 5] = "1110";
+        [PTBR + 5] = "0110";
         R1 = 1;
         call MEMORY_MANAGER;
         [PTBR + 6] = R0;
-        [PTBR + 7] = "1110";
+        [PTBR + 7] = "0110";
         multipop(R0, R1, R2);         
     endif;
 
@@ -82,9 +82,7 @@ else
     endwhile;
 
 
-    //copy pasting page table entries 
-
-    
+    //copy pasting page table entries     
     counter = 0;
     while (counter < 16) do 
         [newPTBR + counter] = [PTBR + counter]; //copying library heap and code pages

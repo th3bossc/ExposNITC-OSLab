@@ -3,7 +3,7 @@ load --library ../expl/library.lib
 load --module 0 ../spl/spl_progs/stage18/resource_manager.xsm
 load --module 1 ../spl/spl_progs/stage20/process_manager.xsm
 load --module 2 ../spl/spl_progs/stage19/memory_manager.xsm
-load --module 4 ../spl/spl_progs/stage18/device_manager.xsm
+load --module 4 ../spl/spl_progs/stage20/device_manager.xsm
 load --module 5 ../spl/spl_progs/stage20/scheduler.xsm
 load --module 7 ../spl/spl_progs/stage20/boot_module.xsm
 load --int=timer ../spl/spl_progs/stage16/timer.xsm
