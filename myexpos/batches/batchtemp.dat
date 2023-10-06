@@ -1,21 +1,25 @@
-load --os ../spl/spl_progs/temp/os_startup.xsm
+load --os ../spl/spl_progs/os_startup.xsm
 load --library ../expl/library.lib
-load --module 0 ../spl/spl_progs/temp/resource_manager.xsm
-load --module 1 ../spl/spl_progs/temp/process_manager.xsm
-load --module 2 ../spl/spl_progs/temp/memory_manager.xsm
-load --module 4 ../spl/spl_progs/temp/device_manager.xsm
-load --module 5 ../spl/spl_progs/temp/scheduler.xsm
-load --module 7 ../spl/spl_progs/temp/boot_module.xsm
-load --int=timer ../spl/spl_progs/temp/timer.xsm
-load --int=console ../spl/spl_progs/temp/console_interrupt.xsm
-load --int=disk ../spl/spl_progs/temp/disk_interrupt.xsm
-load --int=6 ../spl/spl_progs/temp/int6.xsm
-load --int=7 ../spl/spl_progs/temp/int7.xsm
-load --int=8 ../spl/spl_progs/temp/int8.xsm
-load --int=9 ../spl/spl_progs/temp/int9.xsm
-load --int=10 ../spl/spl_progs/temp/int10.xsm
-load --exhandler ../spl/spl_progs/temp/exception_handler.xsm 
+load --module 0 ../spl/spl_progs/stage22/resource_manager.xsm
+load --module 1 ../spl/spl_progs/stage22/process_manager.xsm
+load --module 2 ../spl/spl_progs/stage19/memory_manager.xsm
+load --module 4 ../spl/spl_progs/stage20/device_manager.xsm
+load --module 5 ../spl/spl_progs/stage20/scheduler.xsm
+load --module 7 ../spl/spl_progs/stage22/boot_module.xsm
+load --int=timer ../spl/spl_progs/stage16/timer.xsm
+load --int=console ../spl/spl_progs/stage16/console_interrupt.xsm
+load --int=disk ../spl/spl_progs/stage18/disk_interrupt.xsm
+load --int=6 ../spl/spl_progs/debug/int6.xsm
+load --int=7 ../spl/spl_progs/debug/int7.xsm
+load --int=8 ../spl/spl_progs/debug/int8.xsm
+load --int=9 ../spl/spl_progs/debug/int9.xsm
+load --int=10 ../spl/spl_progs/stage20/int10.xsm
+load --int=11 ../spl/spl_progs/debug/int11.xsm
+load --int=13 ../spl/spl_progs/debug/int13.xsm
+load --int=14 ../spl/spl_progs/debug/int14.xsm
+load --int=15 ../spl/spl_progs/stage21/int15.xsm
+load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
 load --idle ../expl/samples/idleProcess.xsm 
-load --init ../expl/samples/fork.xsm
-load --exec ../expl/samples/even.xsm
-load --exec ../expl/samples/odd.xsm
+load --init ../expl/samples/readerWriter.xsm
+load --exec ../expl/samples/pid.xsm
+load --exec ../expl/samples/fork3.xsm

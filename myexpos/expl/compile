@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+
+folderName=$(dirname $0)/$1;
+for FILE in $folderName/*.expl; do 
+    echo $(basename $FILE);
+    ./expl $FILE;
+    echo -e;
+done

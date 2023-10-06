@@ -1,0 +1,93 @@
+alias userSP R0;
+alias process_table R1;
+userSP = SP;
+process_table = PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1];
+
+//switch to kernel stack
+[process_table + 13] = userSP;
+SP = [process_table + 11]*512 - 1;
+//get fd from stack by doing addr translation manually
+alias call_num R2;
+call_num = [[PTBR + 2*(userSP - 5)/512]*512 + (userSP-5)%512];
+
+//mem addr of resource table
+alias rc_base R4;
+rc_base =[process_table + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+//SemLock
+if call_num == 19 then
+    [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1]+9] = 19;
+
+    alias semfd R3;
+    semfd  = [[PTBR + 2*(userSP - 4)/512]*512 + (userSP-4)%512];
+
+    //if semphonre is not valid then exit
+    if [rc_base + semfd*2] != SEMAPHORE || semfd <0 || semfd > 7 then
+        [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -1;
+        [process_table +9] = 0;
+        SP = [process_table + 13];
+        print "lockerror";
+        ireturn;
+    endif;
+    alias semid R4;
+    semid = [rc_base + semfd*2 +1];
+
+    //while the sem is locked by other process
+    while [SEMAPHORE_TABLE + semid*4] != -1 && [SEMAPHORE_TABLE + semid*4] != [SYSTEM_STATUS_TABLE + 1] do
+        //put the currrent process to wait
+        [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_SEMAPHORE;
+        [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 5] = semid;
+        multipush(R0, R1, R2, R3, R4);
+        call SCHEDULER;
+        multipop(R0, R1, R2, R3, R4);
+    endwhile;
+    //change the locaking pid
+    [SEMAPHORE_TABLE + semid*4] = [SYSTEM_STATUS_TABLE + 1];
+endif;
+
+//SemUnlock
+if call_num == 20 then
+    [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1]+9] = 20;
+    alias semfd R3;
+    semfd  = [[PTBR + 2*(userSP - 4)/512]*512 + (userSP-4)%512];
+
+    //if not valid then return
+    if [rc_base + semfd*2] != SEMAPHORE || semfd <0 || semfd > 7 then
+        [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -1;
+        [process_table +9] = 0;
+        SP = [process_table + 13];
+        ireturn;
+    endif;
+
+    alias semid R4;
+    semid = [rc_base + 2*semfd +1];
+
+    //if semaphore is locked
+    if [SEMAPHORE_TABLE + semid*4] != -1 then
+        //if sem is not locked by currrent process return -2
+        if [SEMAPHORE_TABLE + semid*4] != [SYSTEM_STATUS_TABLE +1] then
+            [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -2;
+            [process_table +9] = 0;
+            SP = [process_table + 13];
+            ireturn;
+        endif;
+        
+        //unlock the semaphore
+        [SEMAPHORE_TABLE + semid*4] = -1;
+
+        //wake all prc waiting for this semaphore
+        alias ptable R6;
+        ptable = 0;
+        while (ptable < MAX_PROC_NUM) do
+            if [PROCESS_TABLE + 16*ptable + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + 16*ptable + 5] == semid then
+                [PROCESS_TABLE + 16*ptable + 4] = READY;
+            endif;
+            ptable = ptable + 1;
+        endwhile;
+    endif;
+endif;
+
+[[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = 0;
+[process_table +9] = 0;
+SP = [process_table + 13];
+ireturn;
