@@ -1,0 +1,40 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 - 1;
+
+
+backup;
+
+alias counter R10;
+alias memUsage R11;
+counter = 0;
+memUsage = 0;
+while (counter < NUM_MEM_PAGES) do
+    if ([MEMORY_FREE_LIST+counter] != 0) then
+        memUsage = memUsage + 1;
+    endif;
+    counter = counter+1;
+endwhile;
+
+alias prevMemUsage R12;
+prevMemUsage = SYSTEM_STATUS_TABLE+8;
+if (memUsage > [prevMemUsage]) then 
+    [prevMemUsage] = memUsage;
+endif;
+
+restore;
+
+
+
+
+
+backup;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 4] = READY; 
+call SCHEDULER;
+breakpoint;
+restore; // restore registers from kernel stack
+
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13]; //load sp from word 13 of process table
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
+ireturn;
