@@ -34,12 +34,12 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 16 - [Console input](https://exposnitc.github.io/expos-docs/roadmap/stage-16/)
 - Stage 17 - [Program loader](https://exposnitc.github.io/expos-docs/roadmap/stage-17/)
 - Stage 18 - [Disk interrup handler](https://exposnitc.github.io/expos-docs/roadmap/stage-18/)
-- Stage 19 - [Exception handler](https://exposnitc.github.io/expos-docs/roadmap/stage-19/) - *currently completed*
+- Stage 19 - [Exception handler](https://exposnitc.github.io/expos-docs/roadmap/stage-19/)
 
 ### Final stages
 - Stage 20 - [Process creation and termination](https://exposnitc.github.io/expos-docs/roadmap/stage-20/)
 - Stage 21 - [Process synchronization](https://exposnitc.github.io/expos-docs/roadmap/stage-21/)
-- Stage 22 - [Semaphores](https://exposnitc.github.io/expos-docs/roadmap/stage-22/)
+- Stage 22 - [Semaphores](https://exposnitc.github.io/expos-docs/roadmap/stage-22/) - *currently completed*
 - Stage 23 - [File creation and deletion](https://exposnitc.github.io/expos-docs/roadmap/stage-23/)
 - Stage 24 - [File read](https://exposnitc.github.io/expos-docs/roadmap/stage-24/)
 - Stage 25 - [File write](https://exposnitc.github.io/expos-docs/roadmap/stage-25/)

@@ -10,9 +10,9 @@ if (functionNumber == 1) then
     
     [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
     [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
-    alias counter R2;
-    counter = 80;
     
+    alias counter R2;
+    counter = 0;
     while (counter < NUM_MEM_PAGES && [MEMORY_FREE_LIST + counter] != 0) do
         counter = counter+1;
     endwhile;
@@ -42,7 +42,7 @@ endif;
 
 if (functionNumber == 4) then
     alias blockNumber R2;
-    [DISK_FREE_LIST + blockNumber] = 0;
+    [DISK_FREE_LIST + blockNumber] = [DISK_FREE_LIST + blockNumber] - 1;
 endif;
 
 

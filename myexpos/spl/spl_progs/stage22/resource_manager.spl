@@ -1,3 +1,4 @@
+breakpoint;
 alias functionNumber R1;
 alias currentPID R2;
 
@@ -75,4 +76,5 @@ if (functionNumber == 9) then
     endif;
 endif;
 
+breakpoint;
 return;

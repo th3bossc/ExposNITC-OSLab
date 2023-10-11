@@ -1,3 +1,4 @@
+breakpoint;
 alias userSP R5;
 userSP = SP;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
@@ -10,11 +11,12 @@ syscallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = syscallNumber;
 
+
 if (syscallNumber == 17) then //INT_SEMGET 
     alias counter R2;
     counter = 0;
     while([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + counter*2] != -1 && counter < 8) do 
-        counter = counter+2;
+        counter = counter+1;
     endwhile;
 
     if (counter == 8) then //no space left in pre process resource table
@@ -39,9 +41,9 @@ if (syscallNumber == 17) then //INT_SEMGET
 endif; 
 
 if (syscallNumber == 18) then //INT_SEMRELEASE
+    breakpoint;
     alias semaphoreID R2;
     semaphoreID = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
-
     if (semaphoreID < 0 || semaphoreID > 7 || [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + 2*semaphoreID] != 1) then 
         [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
     else
@@ -51,7 +53,6 @@ if (syscallNumber == 18) then //INT_SEMRELEASE
         R3 = [SYSTEM_STATUS_TABLE+1];
         call RESOURCE_MANAGER;
         multipop(R1, R2, R5);
-    
         [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + 2*semaphoreID] = -1;
         [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + 2*semaphoreID + 1] = -1;
     endif;
@@ -59,4 +60,5 @@ endif;
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+breakpoint;
 ireturn;

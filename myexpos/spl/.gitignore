@@ -11,3 +11,4 @@
 # spl_progs/
 .DS_Store
 .vscode/
+spl_progs/debug/

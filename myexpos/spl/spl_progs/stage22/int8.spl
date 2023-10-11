@@ -1,3 +1,4 @@
+breakpoint;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 8;
 
 alias userSP R0;
@@ -38,13 +39,17 @@ else
     multipush(R0, R1, R2, R3, R4); //allocating new pages for the stack
     R1 = 1;
     call MEMORY_MANAGER;
-    [newPTBR + 16] = R0;
+    R5 = R0;
+    multipop(R0, R1, R2, R3, R4);
+    [newPTBR + 16] = R5;
     [newPTBR + 17] = "0110";
+    multipush(R0, R1, R2, R3, R4);
     R1 = 1;
     call MEMORY_MANAGER;
-    [newPTBR + 18] = R0;
-    [newPTBR + 19] = "0110";
+    R5 = R0;
     multipop(R0, R1, R2, R3, R4);
+    [newPTBR + 18] = R5;
+    [newPTBR + 19] = "0110";
 
     [PROCESS_TABLE + (newPID*16) + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 3];
     [PROCESS_TABLE + (newPID*16) + 6] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 6];
@@ -103,21 +108,17 @@ else
     //copying user stack pages 
     alias oldStack R5;
     alias newStack R6;
-
-    oldStack = [PTBR + 16];
-    newStack = [newPTBR + 16];
-    counter = 0;
-    while (counter < 512) do 
-        [newStack*512 + counter] = [oldStack*512 + counter];
-        counter = counter + 1;
-    endwhile;
-
-    oldStack = [PTBR + 18];
-    newStack = [newPTBR + 18];
-    counter = 0;
-    while (counter < 512) do 
-        [newStack*512 + counter] = [oldStack*512 + counter];
-        counter = counter + 1;
+    alias temp R7;
+    temp = 16;
+    while (temp < 20) do
+        oldStack = [PTBR + temp];
+        newStack = [newPTBR + temp];
+        counter = 0;
+        while (counter < 512) do 
+            [newStack*512 + counter] = [oldStack*512 + counter];
+            counter = counter + 1;
+        endwhile;
+        temp = temp+2;
     endwhile;
 
     [[PROCESS_TABLE + (newPID*16) + 11]*512] = BP;
@@ -129,5 +130,6 @@ else
     SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
 endif;
 
+breakpoint;
 ireturn;
 

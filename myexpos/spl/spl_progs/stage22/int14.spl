@@ -1,3 +1,4 @@
+breakpoint;
 alias userSP R0;
 alias process_table R1;
 userSP = SP;
@@ -90,4 +91,5 @@ endif;
 [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = 0;
 [process_table +9] = 0;
 SP = [process_table + 13];
+breakpoint;
 ireturn;

@@ -124,14 +124,13 @@ List merge(List a, List b)
 int main()
 {
   decl
-    int x, counter;
+    int x, counter, temp;
     List p, q;
   enddecl
 
   begin
-    x = initialize();
+    x = exposcall("Heapset");
     semid = exposcall("Semget");
-
     //Storing values in descending order
     head=null;
     counter=0;
@@ -151,6 +150,7 @@ int main()
       counter=counter+1;
     endwhile;
     //Calling Merge Sort
+
     head=mergeSort(head);
     //Printing Values
     p=head;
@@ -158,7 +158,7 @@ int main()
       write(p.data);
       p=p.next;
     endwhile;
-    x = exposcall("Semrelease");
+    x = exposcall("Semrelease", semid);
     return 1;
   end
 }
