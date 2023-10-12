@@ -1,0 +1,87 @@
+alias functionNumber R1;
+alias currentPID R2;
+
+//disk store
+if (functionNumber == 1) then
+    alias pageNumber R3;
+    alias blockNumber R4;
+
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
+
+    [DISK_STATUS_TABLE+1] = 1;
+    [DISK_STATUS_TABLE+2] = pageNumber;
+    [DISK_STATUS_TABLE+3] = blockNumber;
+
+    store(pageNumber, blockNumber);
+
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
+endif;
+
+//disk load
+if (functionNumber == 2) then
+    breakpoint;
+    alias pageNumber R3;
+    alias blockNumber R4;
+
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
+
+    [DISK_STATUS_TABLE + 1] = 0;
+    [DISK_STATUS_TABLE + 2] = pageNumber;
+    [DISK_STATUS_TABLE + 3] = blockNumber;
+
+    load(pageNumber, blockNumber);
+
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
+endif;
+
+//terminal write
+if (functionNumber == 3) then 
+    alias word R3;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    print word;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 9;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+endif;
+
+//terminal read
+if (functionNumber == 4) then
+    alias word R3;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    breakpoint;
+    read;
+    breakpoint;
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+    
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
+
+    alias physicalAddress R4;
+    physicalAddress = [PTBR + 2 * ((word)/512)] * 512 + (word)%512;
+    [physicalAddress] = [PROCESS_TABLE + (currentPID*16) + 8];
+endif;
+return;

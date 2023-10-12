@@ -1,0 +1,192 @@
+alias currentPID R12;
+currentPID = [SYSTEM_STATUS_TABLE+1];
+
+
+[PROCESS_TABLE + (currentPID*16) + 13] = SP;
+alias userSP R0;
+userSP = SP;
+
+SP = [PROCESS_TABLE + (currentPID*16) + 11]*512 - 1;
+
+alias callNumber R1;
+alias callLocation R2;
+alias offset R3;
+
+callLocation = [PTBR + 2*(userSP-5)/512]*512;
+offset = (userSP-5)%512;
+callNumber = [callLocation + offset];
+
+alias returnAddress R10;
+
+returnAddress = [PTBR + 2*(userSP-1)/512]*512;
+offset = (userSP-1)%512;
+returnAddress = returnAddress + offset;
+
+[PROCESS_TABLE + (currentPID*16) + 9] = callNumber;
+
+if (callNumber == 1) then
+    alias fileName R4;
+    alias permission R5;
+
+    //GET FILE NAME
+    callLocation = [PTBR + 2*(userSP-4)/512]*512;
+    offset = (userSP-4)%512;
+    fileName = [callLocation + offset];
+
+    //GET PERMISSIONS
+    callLocation = [PTBR + 2*(userSP-3)/512]*512;
+    offset = (userSP-3)%512;
+    permission = [callLocation + offset];
+
+    alias counter R6;
+    counter = 0;
+
+    alias fileExists R7;
+    fileExists = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] == fileName) then
+            fileExists = 1;
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (fileExists == 1) then
+        [returnAddress] = 0;
+    else    
+        counter = 0;
+        while (counter < MAX_FILE_NUM) do
+            if ([INODE_TABLE + counter*16 + 1] == -1) then
+                break;
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        if (counter == MAX_FILE_NUM) then
+            [returnAddress] = -1;
+        else
+            alias inodeEntry R11;
+            inodeEntry = INODE_TABLE + counter*16;
+            alias userID R8;
+            userID = [PROCESS_TABLE + (currentPID*16) + 3];
+            [inodeEntry + 0] = DATA;
+            [inodeEntry + 1] = fileName;
+            [inodeEntry + 2] = 0; //FILE SIZE
+            [inodeEntry + 3] = userID; //USERID
+            [inodeEntry + 4] = permission;
+
+            [ROOT_FILE + (counter*8) + 0] = fileName;
+            [ROOT_FILE + (counter*8) + 1] = 0;
+            [ROOT_FILE + (counter*8) + 2] = DATA;
+            [ROOT_FILE + (counter*8) + 3] = [USER_TABLE + userID*2]; //username
+            [ROOT_FILE + (counter*8) + 4] = permission;
+
+            [PROCESS_TABLE + (currentPID*16) + 9] = 0;
+            [returnAddress] = 0;
+        endif;
+    endif;
+endif;
+
+
+if (callNumber == 4) then
+    alias counter R4;
+    counter = 0;
+
+    alias fileName R5;
+    fileName = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+    
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] == fileName) then
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+    
+    if (counter == MAX_FILE_NUM) then //no file 
+        [returnAddress] = 0;
+    else
+        alias inodeEntry R11;
+        inodeEntry = INODE_TABLE + counter*16;
+        if ([inodeEntry + 0] != DATA) then  //not data file
+            [returnAddress] = -1;
+        else
+            if ([inodeEntry + 4] == EXCLUSIVE && currentPID != 1 && [inodeEntry + 3] != [PROCESS_TABLE + counter*16 + 3]) then //no perm
+                [returnAddress] = -1;
+            else
+                multipush(R0, R1, R2, R3, R4, R5, R10, R11, R12);
+                R1 = 4;
+                R2 = counter;
+                R3 = currentPID;
+                call RESOURCE_MANAGER;
+                multipop(R0, R1, R2, R3, R4, R5, R10, R11, R12);
+
+                if ([FILE_STATUS_TABLE + counter*4 + 1] != -1) then //file is open can't delete
+                    multipush(R0, R1, R2, R3, R4, R5, R10, R11, R12);
+                    R1 = 5;
+                    R2 = counter;
+                    R3 = currentPID;
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R10, R11, R12);
+                    [returnAddress] = -1;
+                else
+                    alias blockNum R6;
+                    blockNum = inodeEntry + 8;
+                    alias limit R7;
+                    limit = blockNum + 4;
+                    while (blockNum < limit) do
+                        if ([blockNum] == -1) then
+                            break;
+                        endif;
+                        alias bufferIndex R8;
+                        bufferIndex = 0;
+                        while (bufferIndex < MAX_BUFFER) do
+                            if ([BUFFER_TABLE + bufferIndex*4 + 0] == [blockNum] && [BUFFER_TABLE + bufferIndex*4 + 1] == 1) then
+                                [BUFFER_TABLE + bufferIndex*4 + 1] = 0;
+                            endif;
+
+                            bufferIndex = bufferIndex + 1;
+                        endwhile;
+
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R10, R11, R12);
+                        R1 = 4;
+                        R2 = [blockNum];
+                        R3 = currentPID;
+                        call MEMORY_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R10, R11, R12);
+
+                        blockNum = blockNum + 1;
+                    endwhile;
+
+                    alias inodePages R8;
+                    inodePages = inodeEntry;
+                    limit = inodePages + 16;
+
+                    while (inodePages < limit) do
+                        [inodePages] = -1;
+                        inodePages = inodePages + 1;
+                    endwhile;
+
+                    alias rootFile R8;
+                    rootFile = ROOT_FILE + counter*8;
+                    limit = rootFile + 8;
+
+                    while (rootFile < limit) do
+                        [rootFile] = -1;
+                        rootFile = rootFile + 1;
+                    endwhile;
+
+                    multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                    R1 = 5;
+                    R2 = counter;
+                    R3 = currentPID;
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                    [returnAddress] = 0;
+                endif;
+            endif;
+        endif;
+    endif;
+endif;
+
+SP = [PROCESS_TABLE + (currentPID*16) + 13];
+ireturn;
