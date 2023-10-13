@@ -1,0 +1,151 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 8;
+
+breakpoint;
+
+
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+alias newPID R2;
+multipush(R0);
+R1 = 1;
+call PROCESS_MANAGER;
+newPID = R0;
+multipop(R0);
+
+if (newPID == -1) then 
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+else   
+    //allocating heap if not already allocated in parent
+    if ([PTBR+4] == -1) then
+        multipush(R0, R1, R2);
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 4] = R0;
+        [PTBR + 5] = "0110";
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 6] = R0;
+        [PTBR + 7] = "0110";
+        multipop(R0, R1, R2);         
+    endif;
+
+    alias newPTBR R4;
+    newPTBR = PAGE_TABLE_BASE + newPID*20;
+
+    multipush(R0, R1, R2, R3, R4); //allocating new pages for the stack
+    R1 = 1;
+    call MEMORY_MANAGER;
+    R5 = R0;
+    multipop(R0, R1, R2, R3, R4);
+    [newPTBR + 16] = R5;
+    [newPTBR + 17] = "0110";
+    multipush(R0, R1, R2, R3, R4);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    R5 = R0;
+    multipop(R0, R1, R2, R3, R4);
+    [newPTBR + 18] = R5;
+    [newPTBR + 19] = "0110";
+
+
+    alias newProcessTable R10;
+    alias oldProcessTable R11;
+    newProcessTable = PROCESS_TABLE + newPID*16;
+    oldProcessTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16);
+
+    [newProcessTable + 3] = [oldProcessTable + 3];
+    [newProcessTable + 6] = [oldProcessTable + 6];
+    [newProcessTable + 10] = [oldProcessTable + 10]; 
+    [newProcessTable + 7] = [oldProcessTable + 7];
+    [newProcessTable + 13] = [oldProcessTable + 13];
+
+    [newProcessTable + 9] = 0;
+    [newProcessTable + 12] = 0;
+    [newProcessTable + 0] = 0;
+    [newProcessTable + 2] = [SYSTEM_STATUS_TABLE+1];
+    [newProcessTable + 4] = CREATED;
+
+    multipush(R0, R1, R2, R3, R4, R10, R11);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    R5 = R0;
+    multipop(R0, R1, R2, R3, R4, R10, R11);
+    [newProcessTable + 11] = R5;
+
+
+    //initializing per process resource table for child process 
+    alias counter R3;
+    counter = RESOURCE_TABLE_OFFSET;
+    alias oldResourceTable R8;
+    alias newResourceTable R9;
+    oldResourceTable = [oldProcessTable + 11]*512;
+    newResourceTable = [newProcessTable + 11]*512;
+    while(counter < 512) do
+        [newResourceTable + counter] = [oldResourceTable + counter];
+        [newResourceTable + counter + 1] = [oldResourceTable + counter + 1];
+        if ([[newProcessTable + 11]*512 + counter] == SEMAPHORE) then 
+            [SEMAPHORE_TABLE + [newResourceTable + counter + 1]*4 + 1] = [SEMAPHORE_TABLE + [newResourceTable + counter + 1]*4 + 1] + 1;
+        else
+            if ([[newProcessTable + 11]*512 + counter] == FILE) then
+                [OPEN_FILE_TABLE + [newResourceTable + counter+1]*4 + 1] = [OPEN_FILE_TABLE + [newResourceTable + counter+1]*4 + 1] + 1;
+            endif;
+        endif;
+        counter = counter + 2;
+    endwhile;
+
+    //copying disk map table 
+    counter = 0;
+    while (counter < 10) do 
+        [DISK_MAP_TABLE + (newPID*10) + counter] = [DISK_MAP_TABLE + ([SYSTEM_STATUS_TABLE+1]*10) + counter];
+        counter = counter + 1;
+    endwhile;
+
+
+    //copy pasting page table entries     
+    counter = 0;
+    while (counter < 16) do 
+        [newPTBR + counter] = [PTBR + counter]; //copying library heap and code pages
+        [newPTBR + counter + 1] = [PTBR + counter + 1];
+
+        if ([newPTBR + counter] != -1) then //incrementing mem free list 
+            [MEMORY_FREE_LIST + [newPTBR + counter]] = [MEMORY_FREE_LIST + [newPTBR + counter]] + 1;
+        endif;
+
+        counter = counter+2;
+    endwhile;
+
+
+    //copying user stack pages 
+    alias oldStack R5;
+    alias newStack R6;
+    alias temp R7;
+    temp = 16;
+    while (temp < 20) do
+        oldStack = [PTBR + temp];
+        newStack = [newPTBR + temp];
+        counter = 0;
+        while (counter < 512) do 
+            [newStack*512 + counter] = [oldStack*512 + counter];
+            counter = counter + 1;
+        endwhile;
+        temp = temp+2;
+    endwhile;
+
+    [[PROCESS_TABLE + (newPID*16) + 11]*512] = BP;
+    [oldProcessTable + 9] = 0;
+
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = newPID;
+    [[newPTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+
+    SP = [oldProcessTable + 13];
+endif;
+
+breakpoint;
+ireturn;
+

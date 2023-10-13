@@ -1,0 +1,116 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 7;
+
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+//get file descriptor
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescriptorAddr R3;
+alias fileDescriptor R4;
+
+physicalPageNum = [PTBR + 2*((userSP-4)/512)]; //get physical page number of file descriptor
+offset = (userSP-4)%512; //get offset of file descriptor
+fileDescriptorAddr = physicalPageNum*512 + offset; //get physical address of file descriptor
+fileDescriptor = [fileDescriptorAddr];
+
+breakpoint;
+if (fileDescriptor != -1) then 
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [physicalAddrRetVal] = -1;
+    else
+        alias resourceTableEntry R6;
+        resourceTableEntry = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+
+        if ([resourceTableEntry + 0] != FILE) then 
+            [physicalAddrRetVal] = -1;
+        else
+            alias inodeIndex R7;
+            alias openFileEntry R8;
+            openFileEntry = [resourceTableEntry + 1];
+            inodeIndex = [OPEN_FILE_TABLE + openFileEntry*4 + 0];
+
+            multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+            R1 = 4;
+            R2 = inodeIndex;
+            R3 = [SYSTEM_STATUS_TABLE+1];
+            call RESOURCE_MANAGER;
+            R9 = R0;
+            multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+
+            if (R9 == -1) then 
+                [physicalAddrRetVal] = -1;
+            else
+                alias lseek R9;
+                lseek = OPEN_FILE_TABLE + openFileEntry*4 + 2;
+                alias wordAddress R10;
+                wordAddress = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+                wordAddress = [PTBR + 2*(wordAddress/512)]*512 + (wordAddress%512);
+
+                if (inodeIndex == INODE_ROOT) then
+                    if ([lseek] == 480) then 
+                        [physicalAddrRetVal] = -2;
+                    else
+                        [wordAddress] = [ROOT_FILE + [lseek]];
+                        [lseek] = [lseek] + 1;
+                    endif;
+                else
+                    if ([lseek] == [INODE_TABLE + inodeIndex*16 + 2]) then 
+                        [physicalAddrRetVal] = -2;
+                    else
+                        alias diskBlock R11;
+                        alias offset R12;
+                        diskBlock = [INODE_TABLE + inodeIndex*16 + 8 + ([lseek]/512)];
+                        offset =  ([lseek]%512);
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                        R1 = 2;
+                        R2 = diskBlock;
+                        R3 = offset;
+                        R4 = wordAddress;
+                        call FILE_MANAGER; //buffer read
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                        [lseek] = [lseek] + 1;
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                        R1 = 5;
+                        R2 = inodeIndex;
+                        R3 = [SYSTEM_STATUS_TABLE+1];
+                        call RESOURCE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+                        [physicalAddrRetVal] = 0;
+                    endif;
+                endif;
+            endif;
+        endif;
+    endif;
+else
+    alias wordAddress R5;
+    alias physicalAddrRetVal R6;
+    wordAddress = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+    
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    alias functionNumber R1;
+    alias currentPID R2;
+    alias wordToRead R3;
+
+    functionNumber = 4;
+    currentPID = [SYSTEM_STATUS_TABLE+1];
+    wordToRead = wordAddress;
+    
+    call DEVICE_MANAGER;
+    
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    [physicalAddrRetVal] = 0; 
+endif;
+
+breakpoint;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+ireturn;
