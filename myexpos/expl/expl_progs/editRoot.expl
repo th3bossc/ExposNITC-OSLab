@@ -1,0 +1,20 @@
+int main() {
+    decl 
+        int temp, status, fileDesc;
+    enddecl
+
+    begin 
+        fileDesc = exposcall("Open", "root");
+        if (fileDesc < 0) then
+            temp = exposcall("Write", -2, "ERr");
+        else 
+            temp = exposcall("Write", fileDesc, "OK");
+            temp = exposcall("Close", fileDesc);
+            temp = exposcall("Write", -2, "OK");
+        endif;
+
+        return 0;
+    end
+}
+
+//CREATED TO SEE IF ROOT FILE CAN BE WRITTEN TO (TL;DR IT CANNOT BE WRITTEN TO)

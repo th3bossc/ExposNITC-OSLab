@@ -33,5 +33,6 @@ load --exec ../expl/samples/stage25/ass1.xsm
 load --exec ../expl/samples/stage25/ass2.xsm
 load --exec ../expl/samples/stage25/ass3.xsm
 load --exec ../expl/samples/stage25/ass4.xsm
+load --exec ../expl/expl_progs/editRoot.xsm
 load --data ../sample.dat
 load --data ../nums.dat

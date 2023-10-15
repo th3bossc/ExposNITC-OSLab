@@ -44,7 +44,7 @@ if (fileDescriptor != -2) then
             alias inodeTableEntry R15;
             processTableEntry = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16);
             inodeTableEntry = INODE_TABLE + inodeIndex*16;
-            if (([processTableEntry + 3] != ROOT) || ( [inodeTableEntry + 4] == EXCLUSIVE && [inodeTableEntry + 3] != [processTableEntry + 3])) then
+            if (([processTableEntry + 3] != ROOT) && ( [inodeTableEntry + 4] == EXCLUSIVE && [inodeTableEntry + 3] != [processTableEntry + 3])) then
                 [physicalAddrRetVal] = -3;
             else
                 alias returnValue R10;

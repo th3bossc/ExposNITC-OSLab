@@ -42,8 +42,8 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 22 - [Semaphores](https://exposnitc.github.io/expos-docs/roadmap/stage-22/)
 - Stage 23 - [File creation and deletion](https://exposnitc.github.io/expos-docs/roadmap/stage-23/)
 - Stage 24 - [File read](https://exposnitc.github.io/expos-docs/roadmap/stage-24/)
-- Stage 25 - [File write](https://exposnitc.github.io/expos-docs/roadmap/stage-25/) - *currently completed*
-- Stage 26 - [User management](https://exposnitc.github.io/expos-docs/roadmap/stage-26/)
+- Stage 25 - [File write](https://exposnitc.github.io/expos-docs/roadmap/stage-25/)
+- Stage 26 - [User management](https://exposnitc.github.io/expos-docs/roadmap/stage-26/) - *currently completed*
 - Stage 27 - [Pager module](https://exposnitc.github.io/expos-docs/roadmap/stage-27/)
 - Stage 28 - [Multi-core extension](https://exposnitc.github.io/expos-docs/roadmap/stage-28/)
 
