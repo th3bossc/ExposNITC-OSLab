@@ -19,10 +19,10 @@ load --int=13 ../spl/spl_progs/stage22/int13.xsm
 load --int=14 ../spl/spl_progs/stage22/int14.xsm
 load --int=15 ../spl/spl_progs/stage22/int15_assignments.xsm
 load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
-load --idle ../expl/samples/idleProcess.xsm
-load --init ../expl/samples/shell.xsm
-load --exec ../expl/samples/rWriter.xsm
-load --exec ../expl/samples/parent.xsm
-load --exec ../expl/samples/child.xsm
-load --exec ../expl/samples/mss.xsm
-load --exec ../expl/samples/msc.xsm
+load --idle ../expl/samples/preStage25/idleProcess.xsm
+load --init ../expl/samples/preStage25/shell.xsm
+load --exec ../expl/samples/preStage25/rWriter.xsm
+load --exec ../expl/samples/preStage25/parent.xsm
+load --exec ../expl/samples/preStage25/child.xsm
+load --exec ../expl/samples/preStage25/mss.xsm
+load --exec ../expl/samples/preStage25/msc.xsm

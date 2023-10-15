@@ -14,8 +14,8 @@ load --int=7 ../spl/spl_progs/stage15/int7.xsm
 load --int=9 ../spl/spl_progs/stage19/int9.xsm
 load --int=10 ../spl/spl_progs/haltprog.xsm
 load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
-load --idle ../expl/samples/idleProcess.xsm 
-load --init ../expl/samples/runProg.xsm
-load --exec ../expl/samples/even.xsm
-load --exec ../expl/samples/odd.xsm
-load --exec ../expl/samples/LList.xsm
+load --idle ../expl/samples/preStage25/idleProcess.xsm 
+load --init ../expl/samples/preStage25/runProg.xsm
+load --exec ../expl/samples/preStage25/even.xsm
+load --exec ../expl/samples/preStage25/odd.xsm
+load --exec ../expl/samples/preStage25/LList.xsm

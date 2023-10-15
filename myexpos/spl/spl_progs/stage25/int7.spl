@@ -1,0 +1,160 @@
+//set MODE flag of the process to system call number (5)
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 5;
+
+alias userSP R0;
+userSP = SP;
+
+//change user stack to kernel stack
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 - 1;
+
+
+
+//get file descriptor
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescriptorAddr R3;
+alias fileDescriptor R4;
+
+physicalPageNum = [PTBR + 2*((userSP-4)/512)]; //get physical page number of file descriptor
+offset = (userSP-4)%512; //get offset of file descriptor
+fileDescriptorAddr = physicalPageNum*512 + offset; //get physical address of file descriptor
+fileDescriptor = [fileDescriptorAddr];
+
+
+if (fileDescriptor != -2) then
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [physicalAddrRetVal] = -1;
+    else
+        alias resourceTableEntry R6;
+        resourceTableEntry = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+
+        if ([resourceTableEntry + 0] != FILE ) then     
+            [physicalAddrRetVal] = -1;
+        else
+            alias openFileTableEntry R8;
+            openFileTableEntry = [resourceTableEntry + 1];
+            alias inodeIndex R9;
+            inodeIndex = [OPEN_FILE_TABLE + openFileTableEntry*4 + 0];
+
+            alias processTableEntry R14;
+            alias inodeTableEntry R15;
+            processTableEntry = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16);
+            inodeTableEntry = INODE_TABLE + inodeIndex*16;
+            if (([processTableEntry + 3] != ROOT) || ( [inodeTableEntry + 4] == EXCLUSIVE && [inodeTableEntry + 3] != [processTableEntry + 3])) then
+                [physicalAddrRetVal] = -3;
+            else
+                alias returnValue R10;
+                multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R14, R15);
+                R1 = 4;
+                R2 = inodeIndex;
+                R3 = [SYSTEM_STATUS_TABLE+1];
+                call FILE_MANAGER;
+                returnValue = R0;
+                multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R14, R15);
+
+                if (returnValue == -1) then
+                    [physicalAddrRetVal] = -1;
+                else
+                    alias lseek R10;
+                    lseek = [OPEN_FILE_TABLE + openFileTableEntry*4 + 2];
+
+                    if (lseek == MAX_FILE_SIZE) then
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                        R1 = 5;
+                        R2 = inodeIndex;
+                        R3 = [SYSTEM_STATUS_TABLE+1];
+                        call FILE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                        
+                        [physicalAddrRetVal] = -2; //max file size reached
+                    else
+                        if ((lseek % 512) == 0 && lseek == [inodeTableEntry + 2]) then 
+                            alias newBlock R11;
+                            multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                            R1 = 3;
+                            call MEMORY_MANAGER;
+                            newBlock = R0;
+                            multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                            if (newBlock == -1) then
+                                multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R14, R15);
+                                R1 = 5;
+                                R2 = inodeIndex;
+                                R3 = [SYSTEM_STATUS_TABLE+1];
+                                call RESOURCE_MANAGER;
+                                multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R14, R15);
+
+                                [physicalAddrRetVal] = -2; //no blocks free
+
+                                goto exit;
+                            else
+                                [inodeTableEntry + 8 + (lseek/512)] = newBlock;
+                            endif;
+                        endif;
+                        
+                        alias blockNumber R11;
+                        alias offset R12;
+                        alias wordToWrite R13;
+                        blockNumber = [inodeTableEntry + 8 + (lseek/512)];
+                        offset = lseek%512;
+                        wordToWrite = [PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512;
+
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+                        R1 = 1;
+                        R2 = blockNumber;
+                        R3 = offset;
+                        R4 = [wordToWrite];
+                        call FILE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+
+                        if (lseek == [inodeTableEntry + 2]) then
+                            [inodeTableEntry + 2] = [inodeTableEntry + 2] + 1;
+                            [ROOT_FILE + inodeIndex*8 + 1] = [ROOT_FILE + inodeIndex*8 + 1] + 1;
+                        endif;
+                        [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] = [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] + 1;
+
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+                        R1 = 5;
+                        R2 = inodeIndex;
+                        R3 = [SYSTEM_STATUS_TABLE+1];
+                        call RESOURCE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+
+                        [physicalAddrRetVal] = 0;
+                    endif;
+                endif;
+            endif;
+        endif;
+    endif;
+else
+    alias word R5;
+    alias physicalAddrRetVal R6;
+    word = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+    
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    alias functionNumber R1;
+    alias currentPID R2;
+    alias wordToPrint R3;
+
+    functionNumber = 3;
+    currentPID = [SYSTEM_STATUS_TABLE+1];
+    wordToPrint = word;
+
+    call DEVICE_MANAGER;
+
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    [physicalAddrRetVal] = 0;    
+endif;
+
+
+exit:
+    SP = userSP;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
+    ireturn;
+
+

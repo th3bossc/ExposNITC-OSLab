@@ -1,0 +1,206 @@
+alias functionNumber R1;
+
+if (functionNumber == 1) then
+    alias blockNumber R2;
+    alias offset R3;
+    alias wordToWrite R4;
+    alias bufferIndex R5;
+
+    bufferIndex = blockNumber % MAX_BUFFER;
+
+    multipush(R1, R2, R3, R4, R5); //acquire buffer
+    R1 = 1;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5);
+
+
+    if ([BUFFER_TABLE + bufferIndex*4 + 0] != blockNumber) then
+        if ([BUFFER_TABLE + bufferIndex*4 + 1] == 1) then
+            multipush(R1, R2, R3, R4, R5); //disk store
+            R1 = 1;
+            R2 = [SYSTEM_STATUS_TABLE+1];
+            R3 = 71 + bufferIndex;
+            R4 = [BUFFER_TABLE + bufferIndex*4 + 0];
+            call DEVICE_MANAGER;
+            multipop(R1, R2, R3, R4, R5);
+
+            [BUFFER_TABLE + bufferIndex*4 + 1] = 0;
+        endif;
+        multipush(R1, R2, R3, R4, R5); // disk load
+        R1 = 2;
+        R4 = blockNumber;
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = 71 + bufferIndex;
+        call DEVICE_MANAGER;
+        multipop(R1, R2, R3, R4, R5);
+        [BUFFER_TABLE + bufferIndex*4 + 0] = blockNumber;
+    endif;
+    
+    [(71 + bufferIndex)*512 + offset] = wordToWrite;
+    
+    [BUFFER_TABLE + bufferIndex*4 + 1] = 1;
+
+    multipush(R1, R2, R3, R4, R5);
+    R1 = 2;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];  
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5);
+    
+    return;
+endif;
+
+if (functionNumber == 2) then
+    alias blockNumber R2;
+    alias offset R3;
+    alias memAddress R4;
+    alias bufferIndex R5;
+    bufferIndex = blockNumber % MAX_BUFFER;
+    multipush(R1, R2, R3, R4, R5);
+    R1 = 1;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5);
+
+    alias BUFFER_TABLEEntry R6;
+    BUFFER_TABLEEntry = BUFFER_TABLE + bufferIndex*4;
+
+    if ([BUFFER_TABLEEntry + 0] != blockNumber) then
+        if ([BUFFER_TABLEEntry + 1] == 1) then
+            multipush(R1, R2, R3, R4, R5, R6);
+            R1 = 1;
+            R2 = [SYSTEM_STATUS_TABLE+1];
+            R3 = 71 + bufferIndex;
+            R4 = [BUFFER_TABLEEntry + 0];
+            call DEVICE_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6);
+
+            [BUFFER_TABLEEntry + 1] = 0;
+        endif;
+        multipush(R1, R2, R3, R4, R5, R6);
+        R1 = 2;
+        R4 = blockNumber;
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = 71 + bufferIndex;
+        call DEVICE_MANAGER;
+        multipop(R1, R2, R3, R4, R5, R6);
+
+        [BUFFER_TABLEEntry + 0] = blockNumber;
+    endif;
+
+    [memAddress] = [(71 + bufferIndex)*512 + offset];
+    multipush(R1, R2, R3, R4, R5, R6);
+    R1 = 2;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];  
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5, R6);
+endif;
+
+if (functionNumber == 3) then
+    breakpoint;
+    alias fileName R2;
+    alias counter R3;
+    counter = 0;
+    while (counter < MAX_FILE_NUM && [INODE_TABLE + counter*16 + 1]  != fileName) do
+        counter = counter+1;
+    endwhile;
+    if (counter == MAX_FILE_NUM) then
+        R0 = -1;
+    else
+        alias returnValue R4;
+        multipush(R1, R2, R3);
+        R1 = 4;
+        R2 = counter;
+        R3 = [SYSTEM_STATUS_TABLE+1];
+        call RESOURCE_MANAGER;
+        returnValue = R0;
+        multipop(R1, R2, R3);
+
+        if (returnValue == -1) then
+            R0 = -1;
+        else
+            if ([INODE_TABLE + counter*16 + 0] == EXEC) then
+                multipush(R1, R2, R3, R4);
+                R1 = 5;
+                R2 = counter;
+                R3 = [SYSTEM_STATUS_TABLE+1];
+                call RESOURCE_MANAGER;
+                multipop(R1, R2, R3, R4);
+
+                R0 = -1;
+            else
+                alias openFileIndex R6;
+                alias openFileEntry R5;
+                openFileIndex = 0;
+                while (openFileIndex < MAX_OPENFILE_NUM) do
+                    if ([OPEN_FILE_TABLE + openFileIndex*4 + 0] == -1) then
+                        break;
+                    endif;
+                    openFileIndex = openFileIndex + 1;
+                endwhile;
+
+                if (openFileIndex == MAX_OPENFILE_NUM) then
+                    R0 = -2;
+                else
+                    openFileEntry = OPEN_FILE_TABLE + openFileIndex*4;
+                    if (fileName == "root") then
+                        [openFileEntry + 0] = INODE_ROOT;
+                    else
+                        alias fileStatusEntry R7;
+                        fileStatusEntry = FILE_STATUS_TABLE + counter*4;
+                        if ([fileStatusEntry + 1] == -1) then
+                            [fileStatusEntry + 1] = 1;
+                        else
+                            [fileStatusEntry + 1] = [fileStatusEntry + 1] + 1;
+                        endif;
+                        [openFileEntry + 0] = counter;
+                    endif;
+                    [openFileEntry + 1] = 1;
+                    [openFileEntry + 2] = 0;
+                    
+                    multipush(R1, R2, R3, R4, R5, R6);
+                    R1 = 5;
+                    R2 = counter;
+                    R3 = [SYSTEM_STATUS_TABLE+1];
+                    call RESOURCE_MANAGER;
+                    multipop(R1, R2, R3, R4, R5, R6);
+
+                    R0 = openFileIndex;
+                endif;
+            endif;
+        endif;
+    endif;
+    breakpoint;
+endif;
+
+
+if (functionNumber == 4) then
+    breakpoint;
+    alias openFileEntry R2;
+    alias inodeIndex R3;
+    inodeIndex = [OPEN_FILE_TABLE + openFileEntry*4 + 0];
+    [OPEN_FILE_TABLE + openFileEntry*4 + 1] = [OPEN_FILE_TABLE + openFileEntry*4 + 1] - 1;
+
+    if ([OPEN_FILE_TABLE + openFileEntry*4 + 1] == 0) then
+        [OPEN_FILE_TABLE + openFileEntry*4 + 1] = -1;
+        alias counter R4;
+        counter = 0;
+        while (counter < 4) do
+            [OPEN_FILE_TABLE + openFileEntry*4 + counter] = -1;
+            counter = counter+1;
+        endwhile;
+        if (inodeIndex != INODE_ROOT) then
+            [FILE_STATUS_TABLE + inodeIndex*4 + 1] = [FILE_STATUS_TABLE + inodeIndex*4 + 1] - 1;
+            if ([FILE_STATUS_TABLE + inodeIndex*4 + 1] == 0) then
+                [FILE_STATUS_TABLE + inodeIndex*4 + 1] = -1;
+            endif;
+        endif;
+    endif;
+    breakpoint;
+endif;
+
+return;

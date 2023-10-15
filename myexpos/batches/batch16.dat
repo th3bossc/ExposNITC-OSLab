@@ -10,5 +10,5 @@ load --int=6 $OSLAB/myexpos/spl/spl_progs/stage16/int6.xsm
 load --int=7 $OSLAB/myexpos/spl/spl_progs/stage15/int7.xsm
 load --int=10 $OSLAB/myexpos/spl/spl_progs/haltprog.xsm
 load --exhandler $OSLAB/myexpos/spl/spl_progs/halt.xsm 
-load --idle $OSLAB/myexpos/expl/samples/idleProcess.xsm 
-load --init $OSLAB/myexpos/expl/samples/bubblesort.xsm
+load --idle $OSLAB/myexpos/expl/samples/preStage25/idleProcess.xsm 
+load --init $OSLAB/myexpos/expl/samples/preStage25/bubblesort.xsm

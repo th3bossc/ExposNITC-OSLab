@@ -31,8 +31,20 @@ else
     userPageNum = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11];
     [MEMORY_FREE_LIST + userPageNum] = [MEMORY_FREE_LIST + userPageNum] + 1;
     [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
-    
     SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+    alias counter R5;
+    alias resourceTable R6;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+    counter = 0;
+    while (counter < 8) do 
+        [resourceTable + counter*2 + 0] = -1;
+        [resourceTable + counter*2 + 1] = -1;
+        counter = counter+1;
+    endwhile;
+
+
+    
     [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = RUNNING;
     [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 7] = fileBlock;
     
@@ -67,9 +79,10 @@ else
     R2 = [INODE_TABLE + fileBlock*16 + 8];
     R3 = [SYSTEM_STATUS_TABLE+1];
     call MEMORY_MANAGER;
-    [PTBR + 8] = R0;
-    [PTBR + 9] = "0100";
+    R11 = R0;
     multipop(R0, R1, R2, R3, R4, R5, R6, R10);
+    [PTBR + 8] = R11;
+    [PTBR + 9] = "0100";
 
 
     alias i R5;
@@ -89,13 +102,18 @@ else
     multipush(R0, R1, R2, R3, R4, R5, R6, R10);
     R1 = 1;
     call MEMORY_MANAGER;
-    [PTBR + 16] = R0;
+    R11 = R0;
+    multipop(R0, R1, R2, R3, R4, R5, R6, R10);
+    [PTBR + 16] = R11;
     [PTBR + 17] = "0110";
+    
+    multipush(R0, R1, R2, R3, R4, R5, R6, R10);
     R1 = 1;
     call MEMORY_MANAGER;
-    [PTBR + 18] = R0;
-    [PTBR + 19] = "0110";
+    R11 = R0;
     multipop(R0, R1, R2, R3, R4, R5, R6, R10);
+    [PTBR + 18] = R11;
+    [PTBR + 19] = "0110";
     
     [[PTBR + 16]*512] = [[PTBR + 8]*512 + 1];
     SP = 8*512;
@@ -119,13 +137,10 @@ else
     endwhile;
 
     alias retAddress R3;
-    retAddress = [PTBR + 2*((userSP-1)  )]*512 + (userSP-1)%512;
+    retAddress = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
     [retAddress] = 0;
 endif;
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
 breakpoint;
-
-
-
 ireturn;

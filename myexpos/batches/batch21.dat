@@ -17,7 +17,7 @@ load --int=10 ../spl/spl_progs/stage20/int10.xsm
 load --int=11 ../spl/spl_progs/stage21/int11.xsm
 load --int=15 ../spl/spl_progs/stage21/int15.xsm
 load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
-load --idle ../expl/samples/idleProcess.xsm 
-load --init ../expl/samples/shell.xsm
-load --exec ../expl/samples/pid.xsm
-load --exec ../expl/samples/fork3.xsm
+load --idle ../expl/samples/preStage25/idleProcess.xsm 
+load --init ../expl/samples/preStage25/shell.xsm
+load --exec ../expl/samples/preStage25/pid.xsm
+load --exec ../expl/samples/preStage25/fork3.xsm

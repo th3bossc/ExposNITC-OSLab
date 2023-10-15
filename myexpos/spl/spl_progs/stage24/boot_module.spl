@@ -132,7 +132,7 @@ PTLR = 10;
 [76*512] = [65*512 + 1]; 
 
 [PROCESS_TABLE + 16 + 1] = 1; //process id of INIT is 1
-[PROCESS_TABLE + 16 + 3] = 1; //userid
+[PROCESS_TABLE + 16 + 3] = 1; //userid 
 [PROCESS_TABLE + 16 + 4] = CREATED;
 [PROCESS_TABLE + 16 + 11] = 80; //first available free page is 80 (0 - 79 are system reserved)
 [PROCESS_TABLE + 16 + 12] = 0;

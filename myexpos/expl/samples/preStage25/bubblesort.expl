@@ -1,0 +1,39 @@
+decl
+    int arr[10];
+enddecl
+
+int main() {
+    decl
+        int i, j, temp;
+    enddecl
+
+    begin
+        i = 0;
+        while(i < 10) do 
+            temp = exposcall("Read", -1, arr[i]);
+            i = i+1;
+        endwhile;
+
+        i = 0;
+        while (i < 10) do
+            j = 0;
+            while (j < 9) do 
+                if (arr[j] > arr[j+1]) then 
+                    temp = arr[j+1];
+                    arr[j+1] = arr[j];
+                    arr[j] = temp;
+                endif;
+                j = j+1;
+            endwhile;
+            i = i+1;
+        endwhile;
+
+        temp = exposcall("Write", -2, "Sorted array: ");
+        i = 0;
+        while (i < 10) do 
+            temp = exposcall("Write", -2, arr[i]);
+            i = i+1;
+        endwhile;
+        return 0;
+    end
+}

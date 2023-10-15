@@ -1,0 +1,21 @@
+int main() {
+    decl
+        int temp, counter, stopRead, fileDesc;
+        str fileName;
+    enddecl
+
+    begin 
+        fileDesc = exposcall("Open", "root");
+        stopRead = exposcall("Seek", fileDesc, 8);
+        while (stopRead != -2) do 
+            stopRead = exposcall("Read", fileDesc, fileName);
+            if (fileName != "-1") then
+                temp = exposcall("Write", -2, fileName);
+            endif;
+            temp = exposcall("Seek", fileDesc, 7);
+        endwhile;
+
+        temp = exposcall("Close", fileDesc);
+        return 0;
+    end
+}

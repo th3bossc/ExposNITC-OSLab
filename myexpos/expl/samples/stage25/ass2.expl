@@ -1,0 +1,25 @@
+int main() {
+    decl 
+        int temp, status, fileDesc, counter;
+        str fileName;
+    enddecl
+    
+    begin 
+        temp = exposcall("Write", -2, "Filename:");
+        temp = exposcall("Read", -1, fileName);
+
+        fileDesc = exposcall("Open", fileName);
+        if (fileDesc == -1) then 
+            temp = exposcall("Write", -2, "ErrNF");
+        else 
+            status = exposcall("Seek", fileDesc, 1000);
+            counter = 2000;
+            while (counter <= 2513) do 
+                status = exposcall("Write", fileDesc, counter);
+                counter = counter+1;
+            endwhile;
+            status = exposcall("Close", fileDesc);
+        endif;
+        return 0;
+    end
+}
