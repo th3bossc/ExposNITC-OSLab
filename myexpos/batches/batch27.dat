@@ -1,0 +1,49 @@
+fdisk
+load --os ../spl/spl_progs/stage27/os_startup.xsm
+load --library ../expl/library.lib
+load --module 0 ../spl/spl_progs/stage24/resource_manager.xsm
+load --module 1 ../spl/spl_progs/stage25/process_manager.xsm
+load --module 2 ../spl/spl_progs/stage27/memory_manager.xsm
+load --module 3 ../spl/spl_progs/stage25/file_manager.xsm
+load --module 4 ../spl/spl_progs/stage23/device_manager.xsm
+load --module 5 ../spl/spl_progs/stage27/scheduler.xsm
+load --module 6 ../spl/spl_progs/stage27/pager_module.xsm
+load --module 7 ../spl/spl_progs/stage27/boot_module.xsm
+load --int=timer ../spl/spl_progs/stage27/timer.xsm
+load --int=console ../spl/spl_progs/stage16/console_interrupt.xsm
+load --int=disk ../spl/spl_progs/stage18/disk_interrupt.xsm
+load --int=4 ../spl/spl_progs/stage23/int4.xsm
+load --int=5 ../spl/spl_progs/stage25/int5.xsm
+load --int=6 ../spl/spl_progs/stage24/int6.xsm
+load --int=7 ../spl/spl_progs/stage25/int7.xsm
+load --int=8 ../spl/spl_progs/stage24/int8.xsm
+load --int=9 ../spl/spl_progs/stage19/int9.xsm
+load --int=10 ../spl/spl_progs/stage20/int10.xsm
+load --int=11 ../spl/spl_progs/stage21/int11.xsm
+load --int=12 ../spl/spl_progs/stage26/int12.xsm
+load --int=13 ../spl/spl_progs/stage22/int13.xsm
+load --int=14 ../spl/spl_progs/stage22/int14.xsm
+load --int=15 ../spl/spl_progs/stage26/int15.xsm
+load --int=16 ../spl/spl_progs/stage26/int16.xsm
+load --int=17 ../spl/spl_progs/stage26/int17.xsm
+load --exhandler ../spl/spl_progs/stage19/exception_handler.xsm 
+load --idle ../expl/samples/preStage25/idleProcess.xsm
+load --init ../expl/samples/stage26/login.xsm
+load --shell ../expl/samples/stage26/shell.xsm
+load --exec ../expl/shell_progs/ls.xsm
+load --exec ../expl/shell_progs/rm.xsm
+load --exec ../expl/shell_progs/cat.xsm
+load --exec ../expl/shell_progs/cp.xsm
+load --exec ../expl/shell_progs/lu.xsm
+load --exec ../expl/shell_progs/ru.xsm
+load --exec ../expl/samples/stage27/ass1.xsm
+load --exec ../expl/samples/preStage25/pid.xsm
+load --exec ../expl/samples/stage27/ass2.xsm
+load --exec ../expl/samples/stage27/ass3.xsm
+load --exec ../expl/samples/stage27/pgm1.xsm
+load --exec ../expl/samples/stage27/ass4.xsm
+load --exec ../expl/samples/stage27/pgm2.xsm
+load --exec ../expl/samples/stage27/merge.xsm
+load --exec ../expl/samples/stage27/m_merge.xsm
+load --exec ../expl/samples/stage27/m_sort.xsm
+load --exec ../expl/samples/stage27/m_store.xsm

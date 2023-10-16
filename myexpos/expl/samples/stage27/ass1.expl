@@ -1,0 +1,30 @@
+int main() {
+    decl
+        int temp;
+    enddecl
+
+    begin 
+        temp = exposcall("Fork");
+        if (temp != -1) then 
+            temp = exposcall("Fork");
+            if (temp != -1) then 
+                temp = exposcall("Fork");
+                if (temp != -1) then 
+                    temp = exposcall("Fork");
+                    if (temp != -1) then 
+                        temp = exposcall("Exec", "pid.xsm");
+                    else 
+                        temp = exposcall("Write", -2, "ForkFailed");
+                    endif;
+                else 
+                    temp = exposcall("Write", -2, "ForkFailed");
+                endif;
+            else 
+                temp = exposcall("Write", -2, "ForkFailed");
+            endif;
+        else
+            temp = exposcall("Write", -2, "ForkFailed");
+        endif;
+        return 0;
+    end
+}

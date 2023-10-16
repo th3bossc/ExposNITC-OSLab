@@ -1,0 +1,67 @@
+multipush(BP);
+
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE+1];
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + currentPID*16;
+
+[process_table_entry + 12] = SP%512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+alias nextPID R2;
+
+
+if ([SYSTEM_STATUS_TABLE+5] != 0) then
+    if ([PROCESS_TABLE + 15*16 + 4] == WAIT_DISK) then
+        nextPID = 0;
+    else
+        nextPID = SWAPPER_DAEMON;
+    endif;
+else
+    nextPID = currentPID+1;
+    while (nextPID < 16) do 
+        if (([PROCESS_TABLE + nextPID*16 + 4] == CREATED || [PROCESS_TABLE + nextPID*16 + 4] == READY) && [PROCESS_TABLE + nextPID*16 + 6] != 1) then
+            break;
+        endif;
+        nextPID = nextPID + 1;
+    endwhile;
+
+    if (nextPID == 16) then
+        nextPID = 1;
+        while (nextPID < currentPID) do
+            if (([PROCESS_TABLE + nextPID*16 + 4] == CREATED || [PROCESS_TABLE + nextPID*16 + 4] == READY) && [PROCESS_TABLE + nextPID*16 + 6] != 1) then
+                break;
+            endif;
+            nextPID = nextPID + 1;
+        endwhile;
+    endif;
+
+    if (nextPID == currentPID) then
+        nextPID = 0;
+    endif;
+endif;
+
+
+
+alias new_process_table R3;
+new_process_table = PROCESS_TABLE + nextPID * 16;
+
+//Set back Kernel SP, PTBR , PTLR
+SP =  [new_process_table + 11] * 512 + [new_process_table + 12];
+PTBR = [new_process_table + 14];
+PTLR = [new_process_table + 15];
+[SYSTEM_STATUS_TABLE + 1] = nextPID;
+
+
+if ([new_process_table + 4] == CREATED) then
+    [new_process_table + 9] = 0;
+    [new_process_table + 4] = RUNNING;
+    BP = [[new_process_table + 11]*512];
+    SP = [new_process_table + 13];
+    ireturn;
+endif;
+
+[new_process_table + 4] = RUNNING;
+multipop(BP);
+return;
