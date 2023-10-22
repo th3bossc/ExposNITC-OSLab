@@ -46,7 +46,7 @@ begin
     if(pid==14) then
         newfile="fourteen.dat";
     endif;
-
+    temp = exposcall("Write", -2, pid);
     temp=exposcall("Create", newfile, 1);
     fdwrite=exposcall("Open", newfile);
     if(fdread>=0 AND fdwrite>=0) then

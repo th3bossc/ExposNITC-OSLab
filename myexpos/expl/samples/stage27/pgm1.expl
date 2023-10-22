@@ -1,8 +1,8 @@
 int main()
 {
 decl
-    int temp, fdread, fdwrite, permission, pid, offset, data, iter;
-    string filename;
+    int temp, fdread, fdwrite, permission, pid, offset, data, iter, a;
+    string filename, b;
 enddecl
 
 begin
@@ -48,7 +48,6 @@ begin
     temp=exposcall("Create",filename,permission);
     fdwrite=exposcall("Open",filename);
     fdread=exposcall("Open","num.dat");
-
     if(fdread>=0 AND fdwrite>=0) then
         offset=(pid-3)*100;
         temp=exposcall("Seek",fdread,offset);
@@ -65,7 +64,6 @@ begin
     else
         temp=exposcall("Write", -2, "OPEN FAIL");
     endif;
-
     return 0;
 end
 }

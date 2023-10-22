@@ -281,10 +281,12 @@ endwhile;
 
 
 //setting all other processes to terminated 
-counter = 3;
+counter = 0;
 while (counter < MAX_PROC_NUM) do
+    if (counter > 2) then
+        [PROCESS_TABLE + counter*16 + 4] = TERMINATED;
+    endif;
     [PROCESS_TABLE + counter*16 + 0] = 0;
-    [PROCESS_TABLE + counter*16 + 4] = TERMINATED;
     counter = counter + 1;
 endwhile;
 

@@ -12,7 +12,7 @@ int main() {
         if (fileDesc == -1) then 
             temp = exposcall("Write", -2, "ErrNF");
         else 
-            status = exposcall("Seek", fileDesc, 1000);
+            status = exposcall("Seek", fileDesc, 1200);
             counter = 2000;
             while (counter <= 2513) do 
                 status = exposcall("Write", fileDesc, counter);

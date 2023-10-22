@@ -18,13 +18,11 @@ begin
             iter=iter+1;
         endwhile;    
         temp=exposcall("Close",fd);
-
         pid=exposcall("Fork");
         pid=exposcall("Fork");
         pid=exposcall("Fork");
         pid=exposcall("Fork");
         temp = exposcall("Exec","pgm1.xsm");
-    else
         temp=exposcall("Write",-2, "OPEN FAIL");
     endif;
 
