@@ -1,0 +1,192 @@
+alias userSP R1; 
+alias username R2;
+alias processTableEntry R3;
+alias returnAddress R4;
+alias syscallNumber R5;
+
+userSP = SP;
+username = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+processTableEntry = PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 5*CORE + 1];
+returnAddress = [PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512;
+syscallNumber = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5)%512];
+
+[processTableEntry + 13] = SP;
+SP = [processTableEntry + 11]*512 - 1;
+
+multipush(R1, R2, R3, R4, R5);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1, R2, R3, R4, R5);
+
+[processTableEntry + 9] = syscallNumber;
+
+if (syscallNumber == 22) then
+    alias password R6;
+    password = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+
+    if ([SYSTEM_STATUS_TABLE] != ROOT || [SYSTEM_STATUS_TABLE + 5*CORE + 1] != SHELL_PROCESS) then
+        [returnAddress] = -2;
+        goto endOfCode;
+    endif;
+
+    alias counter R7;
+    alias userTableEntry R8;
+    counter = 0;
+
+    while(counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2] == username) then
+            [returnAddress] = -1;
+            goto endOfCode;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    counter = 0;
+    while(counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2] == -1) then
+            userTableEntry = USER_TABLE + counter*2;
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -3;
+        goto endOfCode;
+    endif;
+
+    encrypt password;
+    [userTableEntry] = username;
+    [userTableEntry + 1] = password;
+
+    [returnAddress] = 0;
+endif;
+
+
+if (syscallNumber == 23) then
+    if ([SYSTEM_STATUS_TABLE] != ROOT || [SYSTEM_STATUS_TABLE + 5*CORE + 1] != SHELL_PROCESS) then
+        [returnAddress] = -2;
+        goto endOfCode;
+    endif;
+
+    if (username == "root" || username == "kernel") then
+        [returnAddress] = -2;
+        goto endOfCode;
+    endif;
+
+    alias userTableEntry R6;
+    alias counter R7;
+    counter = 0;
+    while(counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2] == username) then
+            userTableEntry = USER_TABLE + counter*2;
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -1;
+        goto endOfCode;
+    endif;
+
+    counter = 0;
+    while(counter < MAX_FILE_NUM) do
+        if ([ROOT_FILE + counter*8 + 3] == username) then
+            [returnAddress] = -3;
+            goto endOfCode;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    [userTableEntry] = -1;
+    [userTableEntry + 1] = -1;
+
+    [returnAddress] = 0;
+endif;
+
+
+if (syscallNumber == 24) then
+    alias password R6;
+    password = [[PTBR + 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+
+    if ([SYSTEM_STATUS_TABLE + 5*CORE + 1] != 2) then
+        [returnAddress] = -1;
+        goto endOfCode;
+    endif;
+
+    alias counter R7;
+    alias userTableEntry R8;
+    counter = 0;
+
+    while(counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2] == username) then
+            userTableEntry = USER_TABLE + counter*2;
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -2;
+        goto endOfCode;
+    endif;
+
+    if ([SYSTEM_STATUS_TABLE] != counter && [SYSTEM_STATUS_TABLE] != ROOT) then
+        [returnAddress] = -1;
+        goto endOfCode;
+    endif;
+
+    encrypt password;
+    [userTableEntry + 1] = password;
+    [returnAddress] = 0;
+endif;
+
+if (syscallNumber == 25) then
+    alias userId R2;
+    if (userId < 0 || userId >= MAX_USER_NUM) then
+        [returnAddress] = -1;
+        goto endOfCode;
+    endif;
+
+    if ([USER_TABLE + userId*2] == -1) then
+        [returnAddress] = -1;
+        goto endOfCode;
+    endif;
+
+    [returnAddress] = [USER_TABLE + userId*2];
+endif;
+
+if (syscallNumber == 26) then
+    alias counter R6;
+    counter = 0;
+
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2] == username) then
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -1;
+    else
+        [returnAddress] = counter;
+    endif;
+endif;
+
+endOfCode:
+    multipush(R1, R3);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R1, R3);
+
+    [processTableEntry + 9] = 0;
+    SP = userSP;
+
+    ireturn;
+
+
+
+

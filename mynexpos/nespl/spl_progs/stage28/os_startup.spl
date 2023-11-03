@@ -1,0 +1,116 @@
+//IDLE processs 
+loadi(69, 11);
+
+//load boot module 
+loadi(54, 67);
+loadi(55, 68);
+
+//load BOOT_MODULE 2
+loadi(128, 512);
+loadi(129, 513);
+
+
+
+SP = 76*512 - 1;
+call BOOT_MODULE;
+
+alias counter R0;
+counter = IDLE_PROCESS;
+
+while(counter <= SWAPPER_DAEMON) do
+    PTBR = PAGE_TABLE_BASE + counter*20;
+    PTLR = 10;
+    alias stackPage R1;
+    if (counter == IDLE_PROCESS) then
+        stackPage = 70;
+    endif;
+    if (counter == SWAPPER_DAEMON) then
+        stackPage = 81;
+    endif;
+    if (counter == IDLE2_PROCESS) then
+        stackPage = 83;
+    endif;
+
+    //Library
+    [PTBR+0] = -1;
+    [PTBR+1] = "0000";
+    [PTBR+2] = -1;
+    [PTBR+3] = "0000";
+
+
+    // Heap
+    [PTBR+4] = -1;
+    [PTBR+5] = "0000";
+    [PTBR+6] = -1;
+    [PTBR+7] = "0000";
+
+    // Code FOR IDLE
+    [PTBR+8] = 69;
+    [PTBR+9] = "0100";
+    [PTBR+10] = -1;
+    [PTBR+11] = "0000";
+    [PTBR+12] = -1;
+    [PTBR+13] = "0000";
+    [PTBR+14] = -1;
+    [PTBR+15] = "0000";
+
+    // Stack FOR IDLE 
+    [PTBR+16] = stackPage;
+    [PTBR+17] = "0110";
+    [PTBR+18] = -1;
+    [PTBR+19] = "0000";
+
+    if (counter == IDLE_PROCESS) then
+        counter = IDLE2_PROCESS;
+    else
+        counter = counter+1;
+    endif;
+endwhile;
+
+[PROCESS_TABLE] = 0;
+[PROCESS_TABLE + 1] = IDLE_PROCESS;
+[PROCESS_TABLE + 3] = 0;
+[PROCESS_TABLE + 4] = RUNNING;
+[PROCESS_TABLE + 11] = 76;
+[PROCESS_TABLE + 12] = 0;
+[PROCESS_TABLE + 13] = 8*PAGE_SIZE;
+[PROCESS_TABLE + 14] = PAGE_TABLE_BASE;
+[PROCESS_TABLE + 15] = 10;
+[70*512] = [69*512 + 1];
+
+
+[PROCESS_TABLE + 240 ] = 0 ;
+[PROCESS_TABLE + 241] = SWAPPER_DAEMON;
+[PROCESS_TABLE + 243] = KERNEL;
+[PROCESS_TABLE + 244] = CREATED;
+[PROCESS_TABLE + 251] = 82;	 
+[PROCESS_TABLE + 252] = 0;	
+[PROCESS_TABLE + 253] = 8*PAGE_SIZE;	
+[PROCESS_TABLE + 254] = PAGE_TABLE_BASE + 20*SWAPPER_DAEMON;
+[PROCESS_TABLE + 255] = 10;
+[81*512] = [69*512 + 1];
+
+[PROCESS_TABLE + 224 ] = 0 ;
+[PROCESS_TABLE + 225] = IDLE2_PROCESS;
+[PROCESS_TABLE + 227] = KERNEL;
+[PROCESS_TABLE + 228] = RUNNING;
+[PROCESS_TABLE + 235] = 84; 
+[PROCESS_TABLE + 236] = 0;	
+[PROCESS_TABLE + 237] = 8*PAGE_SIZE;	
+[PROCESS_TABLE + 238] = PAGE_TABLE_BASE + 20*IDLE2_PROCESS;
+[PROCESS_TABLE + 239] = 10;
+
+[SYSTEM_STATUS_TABLE + 1] = IDLE_PROCESS;
+[SYSTEM_STATUS_TABLE + 6] = IDLE2_PROCESS;
+[SYSTEM_STATUS_TABLE + 7] = 0;
+
+[KERN_LOCK] = 0;
+[SCHED_LOCK] = 0;
+[GLOCK] = 0;
+
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+SP = 8*512;
+
+start;
+ireturn;

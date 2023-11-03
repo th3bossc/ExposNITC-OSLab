@@ -1,0 +1,61 @@
+alias functionNumber R1;
+
+alias turnKernLock R3;
+alias turnSchedLock R4;
+alias flagsKernLock R5;
+alias flagsSchedLock R6;
+
+turnKernLock = KERN_LOCK;
+turnSchedLock = SCHED_LOCK;
+flagsKernLock = ACCESS_LOCK_TABLE + 3;
+flagsSchedLock = ACCESS_LOCK_TABLE + 5;
+
+
+
+
+//acquire kern lock
+if (functionNumber == 1) then
+    if (CORE == SECONDARY_CORE) then
+        if ([SYSTEM_STATUS_TABLE + 5] == 1 || [SYSTEM_STATUS_TABLE + 7] == 1) then
+            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 6]*16 + 4] = READY;
+
+            call SCHEDULER;
+        endif;
+    endif;
+
+    [flagsKernLock + CORE] = 1;
+    [turnKernLock] = 1-CORE;
+
+    while([flagsKernLock + 1-CORE] == 1 && [turnKernLock] == 1-CORE) do
+        continue;
+    endwhile;
+endif;
+
+
+//acquire shed lock
+if (functionNumber == 2) then 
+    [flagsSchedLock + CORE] = 1;
+    [turnSchedLock] = 1-CORE;
+
+    while([flagsSchedLock + 1-CORE] == 1 && [turnSchedLock] == 1-CORE) do
+        continue;
+    endwhile;
+endif;
+
+// acquire glock
+if (functionNumber == 3) then
+    while (tsl(GLOCK) == 1) do
+        continue;
+    endwhile;
+endif;
+
+//release locks
+if (functionNumber == 4) then
+    if (R2 == KERN_LOCK) then
+        [flagsKernLock + CORE] = 0;
+    else
+        [flagsSchedLock + CORE] = 0;
+    endif;
+endif;
+
+return;

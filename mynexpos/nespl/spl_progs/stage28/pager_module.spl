@@ -1,0 +1,253 @@
+alias functionNumber R1; 
+alias pid R2;
+
+if(functionNumber == SWAP_OUT) then
+
+    alias swapPid R3;
+    alias processTableEntry R4;
+    alias counter R5; 
+    
+    alias waitingProcessPid R6;
+    alias waitingSemaphorePid R7;
+    alias highestTick R8;
+    alias highestTickPid R9; 
+    counter = SHELL_PROCESS + 1;
+    waitingProcessPid = -1;
+    waitingSemaphorePid = -1;
+    highestTickPid = -1;
+    highestTick = -1;
+    swapPid = -1;
+
+    while(counter < IDLE2_PROCESS) do
+        processTableEntry = PROCESS_TABLE + counter * 16;
+        if([processTableEntry+6] !=1)then
+            if([processTableEntry + 4] == WAIT_PROCESS) then
+                waitingProcessPid = counter;
+                break;
+            endif;
+
+            if([processTableEntry + 4] == WAIT_SEMAPHORE) then
+                waitingSemaphorePid = counter;
+            endif;
+
+           
+            alias state R10;
+            state = [processTableEntry + 4];
+            if([processTableEntry]>highestTick && [processTableEntry+6] == 0 && state!= RUNNING && state != ALLOCATED && state!= TERMINATED) then
+                highestTick = [processTableEntry];
+                highestTickPid = counter;
+            endif;
+        endif;
+        counter = counter +1;
+
+    endwhile;
+
+    if(waitingProcessPid != -1) then
+        swapPid = waitingProcessPid;
+    else
+        if(waitingSemaphorePid != -1) then
+            swapPid = waitingSemaphorePid;
+        else
+            if(highestTickPid != -1) then
+                swapPid = highestTickPid;
+            else
+                [SYSTEM_STATUS_TABLE+5] = 0;
+                return;
+
+            endif;
+        endif;
+    endif;
+
+
+    processTableEntry = PROCESS_TABLE + swapPid * 16;
+    [processTableEntry]=0;
+
+
+    counter =8;
+    alias ptbr R6;
+    ptbr = [processTableEntry + 14];
+  
+    alias codePageAddress R7;
+
+    while(counter < 16) do
+        codePageAddress = ptbr + counter;
+        
+        if([codePageAddress] != -1) then // if code page number is not equal to -1 then
+
+            multipush(R1,R2,R3,R4,R5,R6,R7);
+            R1 = RELEASE_PAGE;
+            R2 = [codePageAddress];
+            call MEMORY_MANAGER;
+            multipop(R1,R2,R3,R4,R5,R6,R7);
+            
+            [codePageAddress] = -1;
+            [codePageAddress + 1] = "0000";
+
+        endif;
+        counter = counter + 2;
+    endwhile;
+
+    alias diskMapEntryAddress R7;
+    diskMapEntryAddress =  DISK_MAP_TABLE + swapPid * 10   ;
+
+    counter = 4;
+
+    alias pageAddress R8;
+    while(counter < 20) do
+        pageAddress = ptbr + counter;
+        
+        if([pageAddress] != -1 && [MEMORY_FREE_LIST+[pageAddress]] == 1) then // if heap page number is not equal to -1 then
+
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+            multipush(R2); // pid
+            R1 = GET_SWAP_BLOCK;
+            call MEMORY_MANAGER;
+            
+            
+            alias swapBlockNumber R0;
+            multipop(R2); // pid
+            multipush(R0);
+
+
+            multipush(R8); //pageAddress
+
+           
+            R1 = DISK_STORE;
+            R2 = pid;
+            R3 = [pageAddress];
+            R4 = swapBlockNumber;
+            call DEVICE_MANAGER;
+            
+            multipop(R8); //pageAddress
+
+         
+            R1 = RELEASE_PAGE;
+            R2 = [pageAddress];
+            call MEMORY_MANAGER;
+            multipop(R0);
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+            
+            [diskMapEntryAddress + counter/2] = swapBlockNumber;
+
+            [pageAddress] = -1;
+            [pageAddress + 1] = "0000";
+
+        endif;
+        counter = counter + 2;
+        if(counter == 8) then
+            counter = 16;
+        endif;
+    endwhile;
+
+
+    [processTableEntry + 6] = 1;
+
+
+    [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] + 1;
+    [SYSTEM_STATUS_TABLE + 5] = 0;
+  
+endif;
+
+if(functionNumber == SWAP_IN) then
+    alias swapPid R3;
+    alias processTableEntry R4;
+    alias counter R5; 
+    alias highestTick R6;
+    swapPid = -1;
+    highestTick = -1;
+    counter = SHELL_PROCESS+1;
+
+    while(counter < SWAPPER_DAEMON)  do
+        processTableEntry = PROCESS_TABLE + counter * 16;
+        
+        if([processTableEntry + 6] == 1 && ([processTableEntry + 4] == READY && [processTableEntry]> highestTick)) then
+            swapPid = counter;
+            highestTick = [processTableEntry];
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if(swapPid == -1) then  
+        [SYSTEM_STATUS_TABLE+5] = 0;
+        return;
+    endif;
+
+    processTableEntry = PROCESS_TABLE + swapPid * 16;
+    [processTableEntry] = 0;
+
+    alias pageTableEntry R6;
+    pageTableEntry = [processTableEntry + 14];
+
+    alias diskMapTableEntry R7;
+    diskMapTableEntry =  DISK_MAP_TABLE + swapPid * 10   ;
+
+    counter =2;
+    
+    while(counter<10) do
+        alias blockNumber R8;
+        blockNumber = [diskMapTableEntry+counter];
+        if(blockNumber!=-1) then
+
+
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+            multipush(R2);
+            multipush(R8);
+
+            R1 = GET_FREE_PAGE;
+            call MEMORY_MANAGER;
+      
+
+            alias swapPage R0;
+
+            multipop(R8);
+            multipop(R2); 
+            multipush(R0);
+            multipush(R2); 
+            multipush(R8); 
+
+
+            R1 = DISK_LOAD ;
+            R2 = pid;
+            R3 = swapPage ;
+            R4 = blockNumber;
+            call DEVICE_MANAGER;
+            
+            multipop(R8);
+            multipop(R2); 
+
+            R1 = RELEASE_BLOCK;
+            R2 = blockNumber;
+            R3 = pid;
+            call MEMORY_MANAGER;
+            multipop(R0);
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+            
+            alias heapPage R9;
+            heapPage = pageTableEntry+2*counter;
+            [heapPage] = swapPage;
+            [heapPage+1] = "0110";
+
+            [diskMapTableEntry+counter]=-1;
+
+
+        endif;
+        counter = counter +1;
+        if(counter == 4) then
+            counter = 8;
+        endif;
+    endwhile;
+
+    
+
+   
+
+    processTableEntry = PROCESS_TABLE + swapPid * 16;
+    [processTableEntry + 6] = 0;
+
+    [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] - 1;
+ 
+    [SYSTEM_STATUS_TABLE + 5] = 0;
+
+endif;
+
+return;

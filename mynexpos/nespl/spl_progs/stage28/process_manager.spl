@@ -1,0 +1,194 @@
+alias functionNumber R1;
+alias pid R2;
+
+if (functionNumber == FREE_USER_AREA_PAGE) then
+	alias counter R3;
+	alias resourceTableEntry R4;
+	alias userPage R5;
+	userPage = [PROCESS_TABLE + pid*16 + 11];
+	resourceTableEntry = userPage*512 + RESOURCE_TABLE_OFFSET;
+
+	counter = 0;
+
+	while(counter < 8) do
+		if ([resourceTableEntry + counter*2] == SEMAPHORE) then
+			multipush(R1, R2, R3, R4, R5);
+			R1 = RELEASE_SEMAPHORE;
+			R3 = pid;
+			R2 = [resourceTableEntry + counter*2 + 1];
+			call RESOURCE_MANAGER;
+			multipop(R1, R2, R3, R4, R5);
+		else
+			if ([resourceTableEntry + counter*2] == FILE) then
+				multipush(R1, R2, R3, R4, R5);
+				R1 = CLOSE;
+				R2 = [resourceTableEntry + counter*2 + 1];
+				call FILE_MANAGER;
+				multipop(R1, R2, R3, R4, R5);
+			endif;
+		endif;
+
+		[userPage*512 + RESOURCE_TABLE_OFFSET + 2*counter] = -1;
+		[userPage*512 + RESOURCE_TABLE_OFFSET + 2*counter + 1] = -1;
+
+		counter = counter + 1;
+	endwhile;
+
+	multipush(R1, R2, R3, R4, R5);
+	R1 = RELEASE_PAGE;
+	R2 = userPage;
+	call MEMORY_MANAGER;
+	multipop(R1, R2, R3, R4, R5);
+endif;
+
+if (functionNumber == EXIT_PROCESS) then
+	multipush(R1, R2);
+	R1 = FREE_PAGE_TABLE;
+	R2 = pid;
+	call PROCESS_MANAGER;
+	multipop(R1, R2);
+
+	multipush(R1, R2);
+	R1 = FREE_USER_AREA_PAGE;
+	R2 = pid;
+	call PROCESS_MANAGER;
+	multipop(R1, R2);
+
+	[PROCESS_TABLE + pid*16 + 4] = TERMINATED;
+
+	if ([PROCESS_TABLE + pid*16 + 9] != 9) then
+		alias counter R3;
+		alias processTableEntry R4;
+
+		counter = 0;
+		while (counter < MAX_PROC_NUM) do
+			processTableEntry = PROCESS_TABLE + counter*16;
+			
+			if ([processTableEntry + 4] == WAIT_PROCESS && [processTableEntry + 5] == pid) then
+				[processTableEntry + 4] = READY;
+			endif;
+
+			if ([processTableEntry + 2] == pid) then 
+				[processTableEntry + 2] = -1;
+			endif;
+
+			counter = counter + 1;
+		endwhile;	
+	endif;
+endif;
+
+
+if (functionNumber == FREE_PAGE_TABLE) then
+	alias pageTableEntry R3;
+	pageTableEntry = [PROCESS_TABLE + pid*16 + 14];
+
+	[pageTableEntry + 0] = -1;
+	[pageTableEntry + 1] = "0000";
+	[pageTableEntry + 2] = -1;
+	[pageTableEntry + 3] = "0000";
+
+	alias counter R4;
+
+	counter = 4;
+	while(counter < 10) do
+		alias page R5;
+		page = [pageTableEntry + counter*2];
+		if (page != -1) then
+			multipush(R1, R2, R3, R4, R5);
+			R1 = RELEASE_PAGE;
+			R2 = page;
+			call MEMORY_MANAGER;
+			multipop(R1, R2, R3, R4, R5);
+			[pageTableEntry + counter*2] = -1;
+			[pageTableEntry + counter*2 + 1] = "0000";
+		endif;
+		counter = counter+1;
+	endwhile;
+
+	alias diskMapTableEntry R3;
+	diskMapTableEntry = DISK_MAP_TABLE + pid*10;
+	counter = 2;
+	while(counter < 10) do
+		if (counter >= 4 && counter <= 7) then 
+			counter = counter + 1;
+			continue;
+		endif;
+		alias blockNum R5;
+		blockNum = [diskMapTableEntry + counter];
+		if (blockNum != -1) then 
+			multipush(R1, R2, R3, R4, R5);
+			R1 = RELEASE_BLOCK;
+			R3 = pid;
+			R2 = blockNum;
+			call MEMORY_MANAGER;
+			multipop(R1, R2, R3, R4, R5);
+			[diskMapTableEntry + counter] = -1;
+		endif;
+		counter = counter + 1;
+	endwhile;
+endif;
+
+if (functionNumber == GET_PCB_ENTRY) then 
+	alias pid R0;
+	pid = -1;
+	alias counter R3;
+	counter = SHELL_PROCESS + 1;
+	alias processTableEntry R4;
+	while (counter < IDLE2_PROCESS) do
+		processTableEntry = PROCESS_TABLE + counter*16;
+		if ([processTableEntry + 4] == TERMINATED) then 
+			[processTableEntry + 1] = counter;
+			[processTableEntry + 4] = ALLOCATED;
+			[processTableEntry + 14] = PAGE_TABLE_BASE + counter*20;
+			[processTableEntry + 15] = 10;
+
+			pid = counter;
+			break;
+		endif;
+		counter = counter+1;
+	endwhile;
+endif;
+
+if (functionNumber == KILL_ALL) then
+	alias counter R4;
+	counter = 0;
+
+	while (counter < MAX_FILE_NUM) do
+		multipush(R1, R2, R3, R4);
+		R1 = ACQUIRE_INODE;
+		R3 = pid;
+		R2 = counter;
+		call RESOURCE_MANAGER;
+		multipop(R1, R2, R3, R4);
+
+		counter = counter+1;
+	endwhile;
+
+	counter = SHELL_PROCESS;
+	
+	while (counter < IDLE2_PROCESS) do
+		if (counter != pid && [PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+			multipush(R1, R2, R3, R4);
+			R1 = EXIT_PROCESS;
+			R2 = counter;
+			call PROCESS_MANAGER;
+			multipop(R1, R2, R3, R4);
+		endif;
+		counter = counter+1;
+	endwhile;
+
+	counter = 0;
+	
+	while(counter < MAX_FILE_NUM) do
+		multipush(R1, R2, R3, R4);
+		R1 = RELEASE_INODE;
+		R3 = pid;
+		R2 = counter;
+		call RESOURCE_MANAGER;
+		multipop(R1, R2, R3, R4);
+
+		counter = counter+1;
+	endwhile;
+endif;
+
+return;

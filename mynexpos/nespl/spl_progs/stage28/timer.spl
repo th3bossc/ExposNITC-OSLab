@@ -1,0 +1,63 @@
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 11] * 512 - 1;
+backup;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+if([SYSTEM_STATUS_TABLE+5] != 0 && CORE == PRIMARY_CORE) then
+    if([SYSTEM_STATUS_TABLE + 5*CORE + 1] == SWAPPER_DAEMON  ) then
+        if([SYSTEM_STATUS_TABLE+5] == SWAP_OUT) then
+            R1 = SWAP_OUT;
+            R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+            call PAGER_MODULE;
+        else
+            R1 = SWAP_IN;
+            R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+            call PAGER_MODULE;
+        endif;
+    endif;
+else
+    if([SYSTEM_STATUS_TABLE+2]< MEM_LOW) then
+        [SYSTEM_STATUS_TABLE+5] = SWAP_OUT;
+    else
+        if([SYSTEM_STATUS_TABLE+4]>0)then
+            alias counter R1;
+            alias processTableEntry R2;
+            counter = SHELL_PROCESS+1;
+
+            while(counter < IDLE2_PROCESS) do
+                processTableEntry  = PROCESS_TABLE + 16 * counter; 
+                
+                if([processTableEntry+6]==1 && ([processTableEntry] > MAX_TICK || [SYSTEM_STATUS_TABLE+2] > MEM_HIGH )) then
+                    [SYSTEM_STATUS_TABLE+5] = SWAP_IN;                            
+                    break;
+                endif;
+                counter = counter +1;
+            endwhile;
+        endif;
+    endif;
+endif;
+
+alias processTableEntry R1;
+processTableEntry = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16;
+[processTableEntry + 4] = READY;
+alias counter R1;
+counter=0;
+while(counter<MAX_PROC_NUM) do
+    if([PROCESS_TABLE + 16*counter + 1] >= 0) then
+        [PROCESS_TABLE + counter*16 ] = [PROCESS_TABLE + counter*16] + 1;
+    endif;
+    counter = counter +1;
+endwhile;
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+call SCHEDULER;
+restore;
+
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 5*CORE + 1] * 16) + 13];
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 9] = 0;
+ireturn;

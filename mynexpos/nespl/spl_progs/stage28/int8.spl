@@ -1,0 +1,221 @@
+
+alias parentProcessTable R4;
+parentProcessTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16);
+
+[parentProcessTable + 9] = 8;
+
+[parentProcessTable + 13] = SP;
+
+// Initialize SP (kernel stack pointer) to (user area page number)*512 -1.
+SP = [parentProcessTable + 11] * 512  - 1 ;
+PTBR = [parentProcessTable + 14];
+PTLR = [parentProcessTable + 15];
+
+
+
+
+multipush(R4);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+R1 = GET_PCB_ENTRY;
+call PROCESS_MANAGER;
+multipop(R4);
+
+if(R0 == -1)then
+    [parentProcessTable + 9] = 0;
+    alias userSP_MinusOne R1;
+    userSP_MinusOne = [parentProcessTable + 13]-1;
+    [[PTBR + 2*((userSP_MinusOne)/512)] * 512 + ((userSP_MinusOne)%512)] = -1;
+
+    multipush(R4);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R4);
+
+    SP = [parentProcessTable + 13];
+    ireturn;
+endif;
+
+alias childPid R1;
+alias childPtbr R2;
+alias childProcessTable R3;
+
+childPid = R0;
+childProcessTable = PROCESS_TABLE + childPid*16;
+childPtbr = [childProcessTable + 14];
+
+alias counter R5;
+alias heapPage R6;
+counter = 0;
+while(counter < 2) do
+    heapPage = PTBR+4+2*counter;
+    if([heapPage] ==-1) then
+        multipush(R1,R2,R3,R4,R5,R6);
+        R1 = GET_FREE_PAGE; // get free page function number
+        call MEMORY_MANAGER; // Memory Manager Module
+        multipop(R1,R2,R3,R4,R5,R6);
+        [heapPage] = R0;
+        [heapPage+1] = "0110";
+    endif;
+    counter = counter + 1;
+endwhile;
+
+
+multipush(R1,R2,R3,R4);
+R1 = GET_FREE_PAGE; // get free page function number
+call MEMORY_MANAGER; // Memory Manager Module
+multipop(R1,R2,R3,R4);
+[childProcessTable + 11]=R0;
+
+
+
+alias stackPage R6;
+counter = 0;
+while(counter < 2) do
+    multipush(R1,R2,R3,R4,R5);
+    R1 = GET_FREE_PAGE; // get free page function number
+    call MEMORY_MANAGER; // Memory Manager Module
+    multipop(R1,R2,R3,R4,R5);
+    stackPage = childPtbr+16+2*counter;
+    [stackPage] = R0;
+    [stackPage+1] = "0110"; // valid bits
+    counter = counter + 1;
+endwhile;
+
+
+
+
+[childProcessTable + 3] = [parentProcessTable + 3]; // USERID
+[childProcessTable + 6] = [parentProcessTable + 6]; // SWAP FLAG
+[childProcessTable + 7] = [parentProcessTable + 7]; // INODE INDEX
+[childProcessTable + 10] = [parentProcessTable + 10]; // USER AREA SWAP STATUS
+[childProcessTable + 13] = [parentProcessTable + 13]; // USER STACK POINTER
+
+[childProcessTable+ 2] = [SYSTEM_STATUS_TABLE + 5*CORE + 1]; // PPID
+[childProcessTable+ 0] = 0; // TICK
+[childProcessTable+ 9] = 0; // MODE FLAG
+[childProcessTable+ 12] = 0; // KERNEL STACK POINTER
+[childProcessTable + 4] = CREATED ;
+
+alias parentResourceTable R6;
+alias chidResourceTable R7;
+alias offset R8;
+counter  = 0;
+while(counter<8) do 
+    offset =  RESOURCE_TABLE_OFFSET+2*counter;
+    parentResourceTable = (([parentProcessTable + 11] ) * 512 ) + offset;
+    chidResourceTable = (([childProcessTable + 11] ) * 512 ) + offset;
+    
+    [chidResourceTable] = [parentResourceTable];
+    [chidResourceTable+1] = [parentResourceTable+1];
+
+    if([parentResourceTable] == SEMAPHORE) then
+        alias semaphoreTableEntry R9;
+        semaphoreTableEntry = SEMAPHORE_TABLE + [parentResourceTable + 1] * 4;
+        [semaphoreTableEntry + 1] = [semaphoreTableEntry + 1] + 1;
+    endif;
+
+    if([parentResourceTable] == FILE) then
+        alias openFileTableEntry R9;
+        openFileTableEntry = OPEN_FILE_TABLE + [parentResourceTable + 1] * 4;
+
+        [openFileTableEntry + 1] = [openFileTableEntry + 1] + 1;
+    endif;
+
+
+    counter = counter + 1;
+endwhile;
+
+alias parentDiskMapTable R6;
+alias childDiskMapTable R7;
+counter=0; // R5
+parentDiskMapTable = DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*10 ;
+childDiskMapTable = DISK_MAP_TABLE + childPid*10 ;
+while(counter<10) do
+    
+    [childDiskMapTable+counter] = [parentDiskMapTable+counter];
+
+    counter = counter + 1;
+endwhile;
+
+counter=0;
+while(counter<8) do
+    [childPtbr+counter] = [PTBR+counter];
+    counter = counter + 1;
+endwhile;
+
+alias memoryFreeListEntry R6;
+counter=0;
+while(counter<8) do
+    memoryFreeListEntry = MEMORY_FREE_LIST + [PTBR+counter];
+    [memoryFreeListEntry] = [memoryFreeListEntry] + 1;
+    counter = counter + 2;
+endwhile;
+
+
+
+alias parentCodePage R5;
+alias childCodePage R6;
+alias counter R7;
+
+
+
+counter=0;
+while(counter<4) do
+    offset =  8 + 2*counter; // R8
+    parentCodePage = PTBR + offset ;
+    childCodePage = childPtbr + offset;
+    [childCodePage] =  [parentCodePage];
+    [childCodePage+1] =  [parentCodePage+1];
+
+    if([parentCodePage]  != -1) then
+        [MEMORY_FREE_LIST+ [parentCodePage]] =  [MEMORY_FREE_LIST+ [parentCodePage]] +1;
+    endif;
+
+    counter = counter+1;
+endwhile;
+
+alias parentStack R5;
+alias childStack R6;
+alias word R8;
+alias offset R9;
+counter =0;
+
+while(counter<2) do
+    word = 0;
+    while(word <512) do
+        offset =  16 + 2*counter;
+        parentStack = PTBR + offset;
+        childStack = childPtbr + offset; 
+        [[childStack]*512+word] =  [[parentStack]*512+word];
+        word = word+1;
+    endwhile;
+    counter = counter+1;
+endwhile;
+
+[[childProcessTable + 11] * 512] = BP;
+
+alias childSP R5;
+childSP = [childProcessTable+13];
+[[childPtbr + 2 * ((childSP-1)/ 512)] * 512 + ((childSP-1) % 512)] = 0;
+
+
+
+alias parentSP R5;
+parentSP = [parentProcessTable+13];
+[[PTBR + 2 * ((parentSP-1)/ 512)] * 512 + ((parentSP-1) % 512)] = childPid;
+
+multipush(R4);
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R4);
+
+[parentProcessTable + 9] = 0;
+
+
+SP = [parentProcessTable + 13];
+
+ireturn;

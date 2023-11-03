@@ -1,0 +1,113 @@
+alias functionNumber R1;
+alias pid R2;
+
+if (functionNumber == TERMINAL_WRITE) then
+    alias word R3;
+    
+    multipush(R1, R2, R3);
+    R1 = ACQUIRE_TERMINAL;
+    R2 = pid;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+
+    print word;
+
+    multipush(R1, R2, R3);
+    R1 = RELEASE_TERMINAL;
+    R2 = pid;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+endif;
+
+if (functionNumber == TERMINAL_READ) then
+    alias wordAddress R3;
+
+    multipush(R1, R2, R3);
+    R1 = ACQUIRE_TERMINAL;
+    R2 = pid;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+
+    read;
+
+    [PROCESS_TABLE + pid*16 + 4] = WAIT_TERMINAL;
+    
+    multipush(R1, R2, R3);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    
+    call SCHEDULER;
+    
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R1, R2, R3);
+
+    alias physicalAddress R4;
+    physicalAddress = [PTBR + 2*(wordAddress/512)]*512 + (wordAddress%512);
+
+    [physicalAddress] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16 + 8];
+endif;
+
+
+if (functionNumber == DISK_LOAD) then
+    alias pageNum R3;
+    alias blockNum R4;
+
+    multipush(R1, R2, R3, R4);
+    R1 = ACQUIRE_DISK;
+    R2 = pid;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4);
+
+    [DISK_STATUS_TABLE + 1] = 0;
+    [DISK_STATUS_TABLE + 2] = pageNum;
+    [DISK_STATUS_TABLE + 3] = blockNum;
+
+    load(pageNum, blockNum);
+
+    [PROCESS_TABLE + pid*16 + 4] = WAIT_DISK;
+
+    multipush(R1, R2, R3, R4);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    call SCHEDULER;
+
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R1, R2, R3, R4);
+endif;
+
+if (functionNumber == DISK_STORE) then
+    alias pageNum R3;
+    alias blockNum R4;
+
+    multipush(R1, R2, R3, R4);
+    R1 = ACQUIRE_DISK;
+    R2 = pid;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4);
+
+    [DISK_STATUS_TABLE + 1] = 1;
+    [DISK_STATUS_TABLE + 2] = pageNum;
+    [DISK_STATUS_TABLE + 3] = blockNum;
+
+    store(pageNum, blockNum);
+
+    [PROCESS_TABLE + pid*16 + 4] = WAIT_DISK;
+
+    multipush(R1, R2, R3, R4);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+
+    call SCHEDULER;
+
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R1, R2, R3, R4);
+endif;
+
+return;

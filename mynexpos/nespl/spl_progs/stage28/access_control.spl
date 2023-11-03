@@ -1,0 +1,40 @@
+alias functionNumber R1;
+
+
+//acquire kern lock
+if (functionNumber == 1) then
+    if (CORE == SECONDARY_CORE) then
+        if ([SYSTEM_STATUS_TABLE + 5] == 1 || [SYSTEM_STATUS_TABLE + 7] == 1) then
+            [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 6]*16 + 4] = READY;
+
+            call SCHEDULER;
+        endif;
+    endif;
+
+    while (tsl(KERN_LOCK) == 1) do
+        continue;
+    endwhile;
+endif;
+
+
+//acquire shed lock
+if (functionNumber == 2) then 
+    while(tsl(SCHED_LOCK) == 1) do
+        continue;
+    endwhile;
+endif;
+
+// acquire glock
+if (functionNumber == 3) then
+    while (tsl(GLOCK) == 1) do
+        continue;
+    endwhile;
+endif;
+
+//release locks
+if (functionNumber == 4) then
+    alias lockVarAddress R2;
+    [lockVarAddress] = 0;
+endif;
+
+return;

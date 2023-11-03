@@ -1,0 +1,116 @@
+alias processTableEntry R1;
+alias userSP R2;
+
+processTableEntry = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+[processTableEntry + 9] = INT_READ; //7
+userSP = SP;
+[processTableEntry + 13] = SP;
+SP = [processTableEntry + 11]*512 - 1;
+
+alias fd R3;
+
+fd = [[PTBR + 2*((userSP-4)/512)]*512 + ((userSP-4)%512)];
+
+multipush(R1, R2, R3);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1, R2, R3);
+
+alias returnValue R4;
+
+if (fd == -1) then 
+	alias wordAddress R5;
+	wordAddress = [[PTBR + 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+
+	returnValue = 0;
+
+	multipush(R1, R2, R3, R4, R5);
+	R1 = TERMINAL_READ;
+	R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+	R3 = wordAddress;
+	call DEVICE_MANAGER;
+	multipop(R1, R2, R3, R4, R5);
+else
+	if (fd < 0 || fd > 7) then 
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias resourceTableEntry R5;
+	resourceTableEntry = [processTableEntry +11]*512 + RESOURCE_TABLE_OFFSET + 2*fd;
+
+	if ([resourceTableEntry] != FILE) then
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias openFileTableEntry R6;
+	alias inodeIndex R7;
+
+	openFileTableEntry = OPEN_FILE_TABLE + [resourceTableEntry + 1]*4;
+	inodeIndex = [openFileTableEntry];
+
+	multipush(R1, R2, R3, R4, R5, R6, R7);
+	R1 = ACQUIRE_INODE;
+	R2 = inodeIndex;
+	R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+	call RESOURCE_MANAGER;
+	multipop(R1, R2, R3, R4, R5, R6, R7);
+
+	if (R0 == -1) then
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias wordAddress R8;
+	wordAddress = [[PTBR + 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+
+	if (inodeIndex == INODE_ROOT) then
+		if ([openFileTableEntry + 2] == 480) then 
+			returnValue = -2;
+			goto releaseInode;
+		endif;
+
+		alias physicalAddress R9;
+		physicalAddress = [PTBR + 2*(wordAddress/512)]*512 + (wordAddress%512);
+
+		[physicalAddress] = [ROOT_FILE + [openFileTableEntry + 2]];
+
+		[openFileTableEntry + 2] = [openFileTableEntry + 2] + 1;
+	else
+		if ([openFileTableEntry + 2] == [INODE_TABLE + inodeIndex*16 + 2]) then 
+			returnValue = -2;
+			goto releaseInode;
+		endif;
+
+		multipush(R1, R2, R3, R4, R5, R6, R7, R8);
+		R1 = BUFFERED_READ;
+		R2 = [INODE_TABLE + inodeIndex*16 + 8 + [openFileTableEntry + 2]/512];
+		R3 = [openFileTableEntry + 2]%512;
+		R4 = wordAddress;
+		call FILE_MANAGER;
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8);
+
+		[openFileTableEntry + 2] = [openFileTableEntry + 2] + 1;
+	endif;
+
+	releaseInode:	
+		multipush(R1, R2, R3, R4, R5, R6, R7, R8);
+		R1 = RELEASE_INODE;
+		R2 = inodeIndex;
+		R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+		call RESOURCE_MANAGER;
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8);
+endif;
+
+endOfCode:
+	multipush(R1, R2, R3, R4, R5, R6, R7, R8);
+	R1 = RELEASE_LOCK;
+	R2 = KERN_LOCK;
+	call ACCESS_CONTROL;
+	multipop(R1, R2, R3, R4, R5, R6, R7, R8);
+
+	[[PTBR + 2*((userSP-1)/512)]*512 + ((userSP-1)%512)] = returnValue;
+	SP = userSP;
+	[processTableEntry + 9] = 0;
+	ireturn;

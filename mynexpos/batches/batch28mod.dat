@@ -1,0 +1,51 @@
+fdisk
+load --os=primary ../nespl/spl_progs/stage28/os_startup.xsm
+load --os=secondary ../nespl/spl_progs/stage28/boot_module2.xsm
+load --library ../expl/library.lib
+load --module 0 ../nespl/spl_progs/stage28/resource_manager.xsm
+load --module 1 ../nespl/spl_progs/stage28/process_manager.xsm
+load --module 2 ../nespl/spl_progs/stage28/memory_manager.xsm
+load --module 3 ../nespl/spl_progs/stage28/file_manager.xsm
+load --module 4 ../nespl/spl_progs/stage28/device_manager.xsm
+load --module 5 ../nespl/spl_progs/stage28/scheduler.xsm
+load --module 6 ../nespl/spl_progs/stage28/pager_module.xsm
+load --module 7 ../nespl/spl_progs/stage28/boot_module.xsm
+load --module 8 ../nespl/spl_progs/stage28/access_controlPeter.xsm
+load --int=timer ../nespl/spl_progs/stage28/timer.xsm
+load --int=console ../nespl/spl_progs/stage28/console_interrupt.xsm
+load --int=disk ../nespl/spl_progs/stage28/disk_interrupt.xsm
+load --int=4 ../nespl/spl_progs/stage28/int4.xsm
+load --int=5 ../nespl/spl_progs/stage28/int5.xsm
+load --int=6 ../nespl/spl_progs/stage28/int6.xsm
+load --int=7 ../nespl/spl_progs/stage28/int7.xsm
+load --int=8 ../nespl/spl_progs/stage28/int8.xsm
+load --int=9 ../nespl/spl_progs/stage28/int9.xsm
+load --int=10 ../nespl/spl_progs/stage28/int10.xsm
+load --int=11 ../nespl/spl_progs/stage28/int11.xsm
+load --int=12 ../nespl/spl_progs/stage28/int12.xsm
+load --int=13 ../nespl/spl_progs/stage28/int13.xsm
+load --int=14 ../nespl/spl_progs/stage28/int14.xsm
+load --int=15 ../nespl/spl_progs/stage28/int15.xsm
+load --int=16 ../nespl/spl_progs/stage28/int16.xsm
+load --int=17 ../nespl/spl_progs/stage28/int17.xsm
+load --exhandler ../nespl/spl_progs/stage28/exception_handler.xsm 
+load --idle ../../myexpos/expl/samples/preStage25/idleProcess.xsm
+load --init ../../myexpos/expl/samples/stage26/login.xsm
+load --shell ../../myexpos/expl/samples/stage26/shell.xsm
+load --exec ../../myexpos/expl/shell_progs/ls.xsm
+load --exec ../../myexpos/expl/shell_progs/rm.xsm
+load --exec ../../myexpos/expl/shell_progs/cat.xsm
+load --exec ../../myexpos/expl/shell_progs/cp.xsm
+load --exec ../../myexpos/expl/shell_progs/lu.xsm
+load --exec ../../myexpos/expl/shell_progs/ru.xsm
+load --exec ../../myexpos/expl/samples/stage27/ass1.xsm
+load --exec ../../myexpos/expl/samples/preStage25/pid.xsm
+load --exec ../../myexpos/expl/samples/stage27/ass2.xsm
+load --exec ../../myexpos/expl/samples/stage27/ass3.xsm
+load --exec ../../myexpos/expl/samples/stage27/pgm1.xsm
+load --exec ../../myexpos/expl/samples/stage27/ass4.xsm
+load --exec ../../myexpos/expl/samples/stage27/pgm2.xsm
+load --exec ../../myexpos/expl/samples/stage27/merge.xsm
+load --exec ../../myexpos/expl/samples/stage27/m_merge.xsm
+load --exec ../../myexpos/expl/samples/stage27/m_sort.xsm
+load --exec ../../myexpos/expl/samples/stage27/m_store.xsm

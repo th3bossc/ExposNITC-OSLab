@@ -1,0 +1,139 @@
+alias processTableEntry R1;
+alias userSP R2;
+
+processTableEntry = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+userSP = SP;
+[processTableEntry + 13] = SP;
+SP = [processTableEntry + 11]*512 - 1;
+
+
+alias fd R3;
+fd = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+
+alias returnValue R4;
+
+alias word R5;
+word = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+
+
+multipush(R1, R2, R3, R4, R5);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1, R2, R3, R4, R5);
+
+
+if (fd == -2) then 
+	multipush(R1, R2, R3, R4, R5);
+	R1 = TERMINAL_WRITE;
+	R2 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+	R3 = word;
+	call DEVICE_MANAGER;
+	multipop(R1, R2, R3, R4, R5);
+	returnValue = 0;
+else
+	if (fd < 0 || fd > 7) then 
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias resourceTableEntry R6;
+	resourceTableEntry = [processTableEntry + 11]*512 + RESOURCE_TABLE_OFFSET + 2*fd;
+
+	if ([resourceTableEntry] != FILE) then 
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias fileTableEntry R7;
+	alias inodeIndex R8;
+	alias inodeTableEntry R9;
+	alias userId R10;
+
+	fileTableEntry = OPEN_FILE_TABLE + [resourceTableEntry + 1]*4;
+	inodeIndex = [fileTableEntry];
+	inodeTableEntry = INODE_TABLE + inodeIndex*16;
+	userId = [processTableEntry + 3];
+
+	if ([inodeTableEntry + 4] == EXCLUSIVE && (userId != ROOT || [inodeTableEntry + 3] != userId)) then
+		returnValue = -3;
+
+		goto endOfCode;
+	endif;
+
+	multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+	R1 = ACQUIRE_INODE;
+	R2 = inodeIndex;
+	R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+	call RESOURCE_MANAGER;
+	multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+	if (R0 == -1) then
+		returnValue = -1;
+		goto endOfCode;
+	endif;
+
+	alias lseek R11;
+	lseek = [fileTableEntry + 2];
+
+	if (lseek == MAX_FILE_SIZE) then
+		returnValue = -2;
+		goto releaseInode;
+	endif;
+
+	alias blockNum R12;
+
+	if (lseek%512 == 0 && [inodeTableEntry + 2] == lseek) then
+		multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+		R1 = GET_FREE_BLOCK;
+		call MEMORY_MANAGER;
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+		blockNum = R0;
+
+		if (blockNum == -1) then
+			returnValue = -2;
+			goto releaseInode;
+		endif;
+		[inodeTableEntry + 8 + (lseek/512)] = blockNum;
+	else
+		blockNum = [inodeTableEntry + 8 + (lseek/512)];
+	endif;
+
+	multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+	R1 = BUFFERED_WRITE;
+	R2 = blockNum;
+	R3 = lseek%512;
+	R4 = word;
+	call FILE_MANAGER;
+	multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	if (lseek == [inodeTableEntry + 2]) then
+		[inodeTableEntry + 2] = lseek + 1;
+		[ROOT_FILE + inodeIndex*8 + 1] = lseek + 1;
+	endif;
+
+	[fileTableEntry + 2] = lseek + 1;
+
+	returnValue = 0;
+
+	releaseInode:
+		multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+		R1 = RELEASE_INODE;
+		R2 = inodeIndex;
+		R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+		call RESOURCE_MANAGER;
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+endif;
+
+endOfCode:
+	multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+	R1 = RELEASE_LOCK;
+	R2 = KERN_LOCK;
+	call ACCESS_CONTROL;
+	multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	[processTableEntry + 9] = 0;
+	SP = userSP;
+
+	[[PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512] = returnValue;
+	ireturn;

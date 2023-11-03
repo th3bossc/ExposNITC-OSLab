@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+
+# This script copies the files from the current directory to the nexpos directory
+
+src=$1
+dest=$2
+fileName=$3
+
+
+cp "myexpos/spl/spl_progs/$src/$fileName.spl" "mynexpos/nespl/spl_progs/$dest/$fileName.spl"
+code "mynexpos/nespl/spl_progs/$dest/$fileName.spl"
+echo "done"

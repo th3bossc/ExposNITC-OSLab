@@ -1,0 +1,80 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*16) + 9] = -1; //setting mode flag to -1
+
+alias userSP R5;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*16) + 13] = SP;
+userSP = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*16) + 11]*512 - 1;
+backup;
+multipush(EIP);
+
+
+
+
+
+if (EC != 0 || userSP == PTLR*512 - 1) then 
+    if (userSP == PTLR*512 - 1) then
+        print "Stack Overflow";
+    else
+        if (EC == 1) then
+            print "INSTR_ERR";
+        endif;
+        if (EC == 2) then
+            print "MEM_ERR";
+        endif;
+        if (EC == 3) then
+            print "ARITH_ERR";
+        endif;
+    endif;
+    breakpoint;
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 5*CORE +1];
+    call PROCESS_MANAGER;
+    call SCHEDULER;
+else
+
+    multipush(R5,EIP,EC,EPN,EMA);
+    R1 = ACQUIRE_KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R5,EIP,EC,EPN,EMA);
+
+
+    if (EPN >= 4 && EPN < 8) then // pagefault caused by code page
+        multipush(EPN);
+        R1 = 5;
+        R2 = [DISK_MAP_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*10) + EPN]; 
+        R3 = [SYSTEM_STATUS_TABLE + 5*CORE +1];
+        call MEMORY_MANAGER;
+        multipop(EPN);
+        [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 5*CORE +1]*20 + 2*EPN] = R0;
+        [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 5*CORE +1]*20 + 2*EPN + 1] = "1100";
+    else //pagefault caused by heap page
+        multipush(R5);
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 4] = R0;
+        [PTBR + 5] = "1110";
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 6] = R0;
+        [PTBR + 7] = "1110";
+        multipop(R5);
+    endif;
+    
+    
+    multipush(R5);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R5);
+
+endif;
+
+multipop(EIP);
+restore;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*16) + 13];
+SP = SP+1;
+[[PTBR + 2*(SP/512)]*512 + SP%512] = EIP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE +1]*16) + 9] = 0; //setting mode flag to 0
+
+
+ireturn;

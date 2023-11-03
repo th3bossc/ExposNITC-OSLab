@@ -1,0 +1,213 @@
+alias functionNumber R1;
+alias currentPID R2;
+
+if (functionNumber == ACQUIRE_TERMINAL) then 
+    while ([TERMINAL_STATUS_TABLE] == 1) do
+        [PROCESS_TABLE + 16*currentPID + 4] = WAIT_TERMINAL;
+        multipush(R1, R2);
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        call SCHEDULER;
+
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop(R1, R2);
+    endwhile;
+
+    [TERMINAL_STATUS_TABLE] = 1;
+    [TERMINAL_STATUS_TABLE + 1] = currentPID;
+endif;
+
+if (functionNumber == RELEASE_TERMINAL) then
+    if (currentPID != [TERMINAL_STATUS_TABLE + 1]) then
+        R0 = -1;
+    else
+        [TERMINAL_STATUS_TABLE] = 0;
+        alias counter R3;
+        counter = 0;
+        while (counter < 16) do
+            if ([PROCESS_TABLE + 16*counter + 4] == WAIT_TERMINAL) then
+                [PROCESS_TABLE + 16*counter + 4] = READY;
+            endif;
+            counter = counter+1;
+        endwhile;
+        R0 = 0;
+    endif;
+endif;
+
+
+if (functionNumber == ACQUIRE_DISK) then 
+    while ([DISK_STATUS_TABLE] == 1) do
+        [PROCESS_TABLE + 16*currentPID + 4] = WAIT_DISK;
+        
+        multipush(R1, R2);
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        call SCHEDULER;
+
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop(R1, R2);
+    endwhile;
+
+    [DISK_STATUS_TABLE] = 1;
+    [DISK_STATUS_TABLE + 4] = currentPID;
+endif;
+
+if (functionNumber == ACQUIRE_SEMAPHORE) then
+    alias counter R3;
+
+    counter = 0;
+    while (counter < MAX_SEM_COUNT) do
+        if ([SEMAPHORE_TABLE + counter*4 + 1] == 0) then
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    if (counter != MAX_SEM_COUNT) then
+        [SEMAPHORE_TABLE + counter*4] = -1;
+        [SEMAPHORE_TABLE + counter*4 + 1] = 1;
+        R0 = counter;
+    else
+        R0 = -1;
+    endif;
+endif;
+
+if (functionNumber == RELEASE_SEMAPHORE) then
+    alias semaphoreTableIndex R2;
+    alias currentPID R3;
+    alias semaphoreEntry R4;
+    semaphoreEntry = SEMAPHORE_TABLE + semaphoreTableIndex*4;
+
+    if ([semaphoreEntry] == currentPID) then
+        [semaphoreEntry] = -1;
+        alias counter R5;
+        
+        while(counter < 16) do
+            if ([PROCESS_TABLE + counter*16 + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + counter*16 + 5] == semaphoreTableIndex ) then
+                [PROCESS_TABLE + counter*16 + 4] = READY;
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        [semaphoreEntry + 1] = [semaphoreEntry + 1] - 1;
+        R0 = 0;
+    else
+        R0 = -1;
+    endif;
+endif;
+
+
+if (functionNumber == ACQUIRE_INODE) then
+    alias inodeIndex R2;
+    alias currentPID R3;
+    alias fileTableEntry R4;
+
+    fileTableEntry = FILE_STATUS_TABLE + inodeIndex*4;
+
+    while([fileTableEntry] != -1) do
+        [PROCESS_TABLE + 16*currentPID + 4] = WAIT_FILE;
+        [PROCESS_TABLE + 16*currentPID + 5] = inodeIndex;
+
+        multipush(R1, R2, R3, R4);
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+        
+        call SCHEDULER;
+
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop(R1, R2, R3, R4);
+    endwhile;
+
+    if ([INODE_TABLE + inodeIndex*16 + 1] == -1) then
+        R0 = -1;
+    else
+        [fileTableEntry] = currentPID;
+        R0 = 0;
+    endif;
+endif;
+
+if (functionNumber == RELEASE_INODE) then
+    alias inodeIndex R2;
+    alias currentPID R3;
+    alias fileTableEntry R4;
+
+    fileTableEntry = FILE_STATUS_TABLE + inodeIndex*4;
+
+    if ([fileTableEntry] != currentPID) then
+        R0 = -1;
+    else
+        [fileTableEntry] = -1;
+        alias counter R5;
+        counter = 0;
+
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + 16*counter + 4] == WAIT_FILE && [PROCESS_TABLE + 16*counter + 5] == inodeIndex) then
+                [PROCESS_TABLE + 16*counter + 4] = READY;
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        R0 = 0;
+    endif;
+endif;
+
+if (functionNumber == ACQUIRE_BUFFER) then
+    alias bufferNumber R2;
+    alias pid R3;
+
+    alias bufferTableEntry R4;
+    bufferTableEntry = BUFFER_TABLE + bufferNumber*4;
+
+    while ([bufferTableEntry + 2] != -1) do
+        [PROCESS_TABLE + 16*pid + 4] = WAIT_BUFFER;
+        [PROCESS_TABLE + 16*pid + 5] = bufferNumber;
+
+        multipush(R1, R2, R3, R4);
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        call SCHEDULER;
+
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop(R1, R2, R3, R4);
+    endwhile;
+
+    [bufferTableEntry + 2] = pid;
+endif;
+
+if (functionNumber == RELEASE_BUFFER) then
+    alias bufferNumber R2;
+    alias pid R3;
+
+    alias bufferTableEntry R4;
+    bufferTableEntry = BUFFER_TABLE + bufferNumber*4;
+
+    if ([bufferTableEntry + 2] != pid) then
+        R0 = -1;
+    else
+        [bufferTableEntry + 2] = -1;
+        alias counter R5;
+        counter = 0;
+
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + 16*counter + 4] == WAIT_BUFFER && [PROCESS_TABLE + 16*counter + 5] == bufferNumber) then
+                [PROCESS_TABLE + 16*counter + 4] = READY;
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        R0 = 0;
+    endif;
+endif;
+
+return;

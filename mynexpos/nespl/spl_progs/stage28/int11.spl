@@ -1,0 +1,75 @@
+alias userSP R5;
+userSP = SP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 11]*512 - 1;
+
+
+alias syscallNumber R1;
+syscallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 9] = syscallNumber;
+
+multipush(R1, R5);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1, R5);
+
+
+
+if (syscallNumber == 11) then //getpid system call
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+endif;
+
+if (syscallNumber == 12) then //getppid system call
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 2];
+endif;
+
+if(syscallNumber == 13) then //wait system call
+    alias pid R2;
+    pid = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+    if (pid == [SYSTEM_STATUS_TABLE + 5*CORE + 1] || [PROCESS_TABLE + pid*16 + 4] == TERMINATED || pid < 0 || pid >= 16) then 
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    else
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 4] = WAIT_PROCESS;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 5] = pid;
+
+        multipush(R1, R2, R5);
+
+        R1 = RELEASE_LOCK;
+        R2 = KERN_LOCK;
+        call ACCESS_CONTROL;
+
+        call SCHEDULER;
+
+        R1 = ACQUIRE_KERN_LOCK;
+        call ACCESS_CONTROL;
+        multipop(R1, R2, R5);
+
+        [[PTBR + 2*((userSP-1)/512)] + (userSP-1)%512] = 0;
+    endif;
+endif;
+
+
+if (syscallNumber == 14) then //signal system call
+    alias counter R2;
+    counter = 0;
+
+    while(counter < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + counter*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + counter*16 + 5] == [SYSTEM_STATUS_TABLE + 5*CORE + 1]) then
+            [PROCESS_TABLE + counter*16 + 4] = READY;
+        endif;
+    endwhile;
+
+endif;
+
+multipush(R5);
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R5);
+
+
+SP = userSP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 5*CORE + 1]*16) + 9] = 0;
+ireturn;

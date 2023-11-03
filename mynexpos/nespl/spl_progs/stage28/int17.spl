@@ -1,0 +1,113 @@
+alias userSP R1;
+alias username R2;
+alias processTableEntry R3;
+alias password R4;
+alias returnAddress R5;
+
+processTableEntry = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+[processTableEntry + 13]= SP;
+
+SP = [processTableEntry + 11] * 512  - 1;
+
+multipush(R1,R2,R3);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1,R2,R3);
+
+userSP = [processTableEntry + 13];
+
+username = [[PTBR + 2*((userSP-4)/512)] * 512 + ((userSP-4)%512)];
+password  = [[PTBR + 2*((userSP-3)/512)] * 512 + ((userSP-3)%512)];
+returnAddress = [PTBR + 2*((userSP-1)/512)] * 512 + ((userSP-1)%512);
+
+
+if([SYSTEM_STATUS_TABLE + 5*CORE + 1] != 1) then
+    [returnAddress] = -2;
+    multipush(R3);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R3);
+
+    [processTableEntry + 9] = 0;
+    SP = [processTableEntry + 13];
+    ireturn;
+endif;
+
+alias userTableEntryAddress R6;
+alias counter R7; 
+counter = 0;
+
+userTableEntryAddress = -1;
+while(counter < MAX_USER_NUM) do
+    if([USER_TABLE + counter*2] == username) then
+        userTableEntryAddress = USER_TABLE + counter*2;
+        break;
+    endif;
+    counter = counter +1;
+endwhile;
+
+if(userTableEntryAddress == -1) then
+    [returnAddress] = -1;
+
+    multipush(R3);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R3);
+
+    [processTableEntry + 9] = 0;
+    SP = [processTableEntry + 13];
+    ireturn;
+endif;
+
+
+encrypt password;
+
+
+if(password != [userTableEntryAddress+1]) then
+    [returnAddress] = -1;
+
+    multipush(R3);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R3);
+
+    [processTableEntry + 9] = 0;
+    SP = [processTableEntry + 13];
+
+    ireturn;
+endif;
+
+
+[PROCESS_TABLE+ 16*SHELL_PROCESS + 4] = CREATED;
+[PROCESS_TABLE+ 16*SHELL_PROCESS + 3] = counter;
+
+[processTableEntry + 4] = WAIT_PROCESS;
+[processTableEntry + 5] = SHELL_PROCESS;
+
+[SYSTEM_STATUS_TABLE] = counter;
+
+multipush(R1,R2,R3,R4,R5,R6,R7);
+
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+
+call SCHEDULER;
+
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+
+multipop(R1,R2,R3,R4,R5,R6,R7);
+
+multipush(R3);
+R1 = RELEASE_LOCK;
+R2 = KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R3);
+
+[processTableEntry + 9] = 0;
+SP = [processTableEntry + 13];
+ireturn;

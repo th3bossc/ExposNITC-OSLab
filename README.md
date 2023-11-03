@@ -9,6 +9,7 @@ This repo contains the project files of my 5th sem lab elective
     - [Final Stages](#final-stages)
 - [Useful Resources](#useful-resources)
 - [Done by](#done-by)
+- [Fork of]()
 
 
 ## Overview
@@ -44,8 +45,8 @@ This repo contains the project files of my 5th sem lab elective
 - Stage 24 - [File read](https://exposnitc.github.io/expos-docs/roadmap/stage-24/)
 - Stage 25 - [File write](https://exposnitc.github.io/expos-docs/roadmap/stage-25/)
 - Stage 26 - [User management](https://exposnitc.github.io/expos-docs/roadmap/stage-26/)
-- Stage 27 - [Pager module](https://exposnitc.github.io/expos-docs/roadmap/stage-27/) - *currently completed*
-- Stage 28 - [Multi-core extension](https://exposnitc.github.io/expos-docs/roadmap/stage-28/)
+- Stage 27 - [Pager module](https://exposnitc.github.io/expos-docs/roadmap/stage-27/)
+- Stage 28 - [Multi-core extension](https://exposnitc.github.io/expos-docs/roadmap/stage-28/) - *currently completed*
 
 
 ## Useful resources
@@ -53,3 +54,6 @@ This repo contains the project files of my 5th sem lab elective
 
 ## Done by
 - Portfolio - [Diljith P D](https://th3bossc.github.io/Portfolio)
+
+## Fork of
+- OS LAB - [eXpOSNitc](https://github.com/eXpOSNitc)

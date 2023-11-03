@@ -110,7 +110,7 @@ if (callNumber == 4) then
         if ([inodeEntry + 0] != DATA) then  //not data file
             [returnAddress] = -1;
         else
-            if ([inodeEntry + 4] == EXCLUSIVE && currentPID != 1 && [inodeEntry + 3] != [PROCESS_TABLE + counter*16 + 3]) then //no perm
+            if ([inodeEntry + 4] == EXCLUSIVE && currentPID != 1 && [inodeEntry + 3] != [PROCESS_TABLE + currentPID*16 + 3]) then //no perm
                 [returnAddress] = -1;
             else
                 multipush(R0, R1, R2, R3, R4, R5, R10, R11, R12);

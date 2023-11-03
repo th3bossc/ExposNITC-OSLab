@@ -1,0 +1,196 @@
+alias userSP R1;
+alias systemCallNumber R2;
+alias processTableEntry R3;
+
+userSP = SP;
+
+processTableEntry = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5*CORE + 1]*16;
+
+[processTableEntry + 13] = SP;
+SP = [processTableEntry + 11]*512 - 1;
+
+systemCallNumber = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5) % 512];
+alias fileName R4;
+
+fileName = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4) % 512];
+
+multipush(R1, R2, R3, R4);
+R1 = ACQUIRE_KERN_LOCK;
+call ACCESS_CONTROL;
+multipop(R1, R2, R3, R4);
+
+[processTableEntry + 9] = systemCallNumber;
+
+alias returnValue R5;
+returnValue = 0;
+
+
+if (systemCallNumber == 1) then 
+    alias counter R6;
+    counter = 0;
+    alias inodeTableEntry R7;
+
+    while (counter < MAX_FILE_NUM) do
+        inodeTableEntry = INODE_TABLE + counter*16;
+
+        if ([inodeTableEntry + 1] == fileName) then 
+            returnValue = 0;
+            goto endOfCode;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    
+    counter = 0;
+    while(counter < MAX_FILE_NUM) do
+        inodeTableEntry = INODE_TABLE + counter*16;
+        
+        if ([inodeTableEntry + 1] == -1) then
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+    
+    
+    if (counter == MAX_FILE_NUM) then
+        returnValue = -1;
+        goto endOfCode;
+    endif;
+
+    alias permission R8;
+    permission = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3) % 512];
+
+    [inodeTableEntry] = DATA;
+    [inodeTableEntry + 1] = fileName;
+    [inodeTableEntry + 2] = 0;
+    [inodeTableEntry + 3] = [processTableEntry + 3];
+    [inodeTableEntry + 4] = permission;
+
+    [inodeTableEntry + 8] = -1;
+    [inodeTableEntry + 9] = -1;
+    [inodeTableEntry + 10] = -1;
+    [inodeTableEntry + 11] = -1;
+
+    alias rootFileEntry R10;
+    rootFileEntry = ROOT_FILE + counter*8;
+
+    [rootFileEntry] = fileName;
+    [rootFileEntry + 1] = 0;
+    [rootFileEntry + 2] = DATA;
+    [rootFileEntry + 3] = [USER_TABLE + [processTableEntry + 3]*2];
+    [rootFileEntry + 4] = permission;
+
+    returnValue = 0;
+    goto endOfCode;
+endif;
+
+if (systemCallNumber == 4) then
+    alias counter R6;
+    alias inodeTableEntry R7;
+
+    counter = 0;
+    
+    while (counter < MAX_FILE_NUM) do
+        inodeTableEntry = INODE_TABLE + counter*16;
+        if ([inodeTableEntry + 1] == fileName) then
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_FILE_NUM) then
+        returnValue = -1;
+        goto endOfCode;
+    endif;
+
+    if ([inodeTableEntry] != DATA) then
+        returnValue = -1;
+        goto endOfCode;
+    endif;
+
+    if ([inodeTableEntry + 4] != EXCLUSIVE) then
+        if ([inodeTableEntry + 3] != ROOT && [inodeTableEntry + 3] != [processTableEntry + 3]) then
+            returnValue = -1;
+            goto endOfCode;
+        endif;
+    endif;
+
+    multipush(R1, R2, R3, R4, R5, R6, R7);
+    R1 = ACQUIRE_INODE;
+    R2 = counter;
+    R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5, R6, R7);
+
+    if ([FILE_STATUS_TABLE + counter*4 + 1] != -1) then
+        returnValue = -2;
+        multipush(R1, R2, R3, R4, R5, R6, R7);
+        R1 = RELEASE_INODE;
+        R2 = counter;
+        R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+        call RESOURCE_MANAGER;
+        multipop(R1, R2, R3, R4, R5, R6, R7);
+
+        goto endOfCode;
+    endif;
+
+    alias blockNum R8;
+    alias bufferTableEntry R9;
+    alias inodeIndex R10;
+
+    inodeIndex = counter;
+    counter = 8;
+    while(counter < 12) do
+        blockNum = [INODE_TABLE + inodeIndex*16 + counter];
+
+        if (blockNum != -1) then
+            alias bufferOffset R11;
+            bufferOffset = 0;
+            bufferTableEntry = BUFFER_TABLE + (blockNum % MAX_BUFFER)*4;
+
+            if ([bufferTableEntry] == blockNum && [bufferTableEntry + 1] == 1) then
+                [bufferTableEntry + 1] = 0;
+            endif;
+
+            multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+            R1 = RELEASE_BLOCK;
+            R2 = blockNum;
+            R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+        endif;
+
+        counter = counter+1;
+    endwhile;
+
+    counter = 0;
+    while(counter < 16) do
+        [inodeTableEntry + counter] = -1;
+        counter = counter+1;
+    endwhile;
+
+    [ROOT_FILE + inodeIndex*8] = -1;
+
+    multipush(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+    R1 = RELEASE_INODE;
+    R2 = inodeIndex;
+    R3 = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+    returnValue = 0;
+    goto endOfCode;
+endif;
+
+
+endOfCode:
+    multipush(R1, R3, R5);
+    R1 = RELEASE_LOCK;
+    R2 = KERN_LOCK;
+    call ACCESS_CONTROL;
+    multipop(R1, R2, R3);
+
+    [[PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512] = returnValue;
+    [processTableEntry + 9] = 0;
+    SP = userSP;
+    ireturn;
